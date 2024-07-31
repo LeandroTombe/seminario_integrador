@@ -40,4 +40,4 @@ class MateriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MateriaSerializer
     permission_classes = [IsAuthenticated, IsAlumno]
     
-#prueba de ci 5
+#prueba de ci 6
