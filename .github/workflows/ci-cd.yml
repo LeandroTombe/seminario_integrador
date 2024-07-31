@@ -41,7 +41,14 @@ jobs:
         # Actualiza pip y instala las dependencias
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
+    - name: crear base de datos
+      run: |
+        # Activa el entorno virtual
+        . venv/bin/activate
+        
+        # Ejecuta las migraciones
+        python create_database.py
+        
     - name: Run Migrations
       run: |
         # Activa el entorno virtual
