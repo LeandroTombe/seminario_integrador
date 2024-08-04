@@ -40,4 +40,32 @@ class MateriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MateriaSerializer
     permission_classes = [IsAuthenticated, IsAlumno]
     
-#prueba de ci 6
+#crud de pagos
+
+class PagoListCreateView(generics.ListCreateAPIView):
+    queryset = Pago.objects.all()
+    serializer_class = PagoSerializer
+    
+    
+class PagoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Pago.objects.all()
+    serializer_class = PagoSerializer
+    
+class AllPagoListView(generics.ListAPIView):
+    queryset = Pago.objects.all()
+    serializer_class = PagoSerializer
+    
+class PagoUpdateView(generics.RetrieveUpdateAPIView):
+    queryset = Pago.objects.all()
+    serializer_class = PagoSerializer
+    partial = True
+    
+    
+class PagoDeleteView(generics.DestroyAPIView):
+    queryset = Pago.objects.all()
+    serializer_class = PagoSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response(print("Pago eliminado"))

@@ -34,14 +34,13 @@ class CompromisoPagoSerializer(serializers.ModelSerializer):
         model = CompromisoPago
         fields = ('alumno', 'periodo', 'fechaFirma')
 
-class PagoSerializer(serializers.ModelSerializer):
-    alumno = AlumnoSerializer()
-    cuota = CuotaSerializer()
 
+class PagoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pago
-        fields = ('IDPago', 'alumno', 'cuota', 'montoInformado', 'fechaPagoInformado', 'montoConfirmado', 'fechaPagoConfirmado', 'comprobanteDePago', 'formaPago')
-
+        fields = '__all__'
+        
+        
 class InhabilitationSerializer(serializers.ModelSerializer):
     alumno = AlumnoSerializer()
 

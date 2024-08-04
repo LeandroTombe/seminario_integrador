@@ -19,15 +19,16 @@ class Cuota(models.Model):
         return f'Cuota {self.nroCuota} - Año {self.año}'
 
 class Alumno(models.Model):
-    legajo = models.IntegerField(primary_key=True)
-    nombre = models.CharField(max_length=255)
-    apellido = models.CharField(max_length=255)
+    legajo = models.IntegerField()
+    nombre = models.CharField(max_length=100)
+    apellido = models.CharField(max_length=100)
     telefono = models.IntegerField()
     email = models.EmailField()
     dni = models.IntegerField()
 
     def __str__(self):
         return f'{self.nombre} {self.apellido}'
+
 
 class Cursado(models.Model):
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
@@ -46,20 +47,29 @@ class CompromisoPago(models.Model):
     def __str__(self):
         return f'{self.alumno} - {self.periodo}'
 
+from django.db import models
+
+
 class Pago(models.Model):
-    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
-    cuota = models.ForeignKey(Cuota, on_delete=models.CASCADE)
-    IDPago = models.IntegerField(primary_key=True)
-    montoInformado = models.FloatField()
-    fechaPagoInformado = models.DateField()
-    montoConfirmado = models.FloatField()
-    fechaPagoConfirmado = models.DateField()
-    comprobanteDePago = models.CharField(max_length=255)
-    formaPago = models.CharField(max_length=255)
+    TRANSFERENCIA = 'Transferencia'
+    EFECTIVO = 'Efectivo'
+    FORMA_PAGO_CHOICES = [
+        (TRANSFERENCIA, 'Transferencia'),
+        (EFECTIVO, 'Efectivo'),
+    ]
+
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE, related_name='pagos')
+    monto_informado = models.DecimalField(max_digits=10, decimal_places=2)
+    fecha_pago_informado = models.DateField()
+    monto_confirmado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    fecha_pago_confirmado = models.DateField(null=True, blank=True)
+    comprobante_de_pago = models.FileField(upload_to='comprobantes/', null=True, blank=True)
+    forma_pago = models.CharField(max_length=20, choices=FORMA_PAGO_CHOICES, default=TRANSFERENCIA)
 
     def __str__(self):
-        return f'Pago {self.IDPago} - {self.alumno}'
-
+        return f'Pago {self.pk} - {self.alumno.nombre} {self.alumno.apellido}'
+    
+    
 class Inhabilitation(models.Model):
     alumno = models.OneToOneField(Alumno, on_delete=models.CASCADE)
     fechaInicio = models.DateField()

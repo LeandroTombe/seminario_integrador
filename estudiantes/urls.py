@@ -1,11 +1,20 @@
 from django.urls import path
 
-from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView
+from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView
 
 
 urlpatterns = [
+    
+    #materias
     path('materia/', MateriasView.as_view()),
     path('materias/', MateriaListView.as_view(), name='materia-list'),
     path('materias/create/', MateriaCreateView.as_view(), name='materia-create'),
     path('materias/<int:pk>/', MateriaDetailView.as_view(), name='materia-detail'),
+    
+    #Pagos
+    path('pagos/', PagoListCreateView.as_view(), name='movie-list-create'),
+    path('pagos/<int:pk>/', PagoDetailView.as_view(), name='movie-detail'),
+    path('pagos/all/', AllPagoListView.as_view(), name='all-movies-list'),  
+    path('pagos/delete/<int:pk>/', PagoDeleteView.as_view(), name='movie-delete'), 
+    path('pagos/update/<int:pk>/', PagoUpdateView.as_view(), name='movie-update'), 
 ]
