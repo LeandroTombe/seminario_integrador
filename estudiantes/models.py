@@ -1,5 +1,8 @@
 from django.db import models
 from .validators import validar_nombre
+from django.contrib.auth.models import User
+from django.conf import settings
+
 
 class Materia(models.Model):
     idMateria = models.IntegerField(primary_key=True)
@@ -19,6 +22,7 @@ class Cuota(models.Model):
         return f'Cuota {self.nroCuota} - Año {self.año}'
 
 class Alumno(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     legajo = models.IntegerField()
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
