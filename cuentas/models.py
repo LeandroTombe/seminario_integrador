@@ -29,8 +29,5 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def get_full_name(self):
         return f"{self.nombre} { self.apellido}"
-    
-    def tokens(self):
-        pass
-    
+
     

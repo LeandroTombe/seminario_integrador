@@ -45,7 +45,7 @@ ALLOWED_HOSTS = []
 
 # Configuración de CORS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # URL frontend React
+    "http://localhost:5173",  # URL frontend React
 ]
 
 MEDIA_URL = '/media/'

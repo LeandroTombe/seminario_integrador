@@ -28,7 +28,7 @@ class UserResource(resources.ModelResource):
         password = row['email']
         row['password'] = password
         row['is_active'] = True
-
+        """
         send_mail(
             'Tu nueva contraseña',
             f'Tu nueva contraseña es: {password}',
@@ -36,7 +36,7 @@ class UserResource(resources.ModelResource):
             [row['email']],
             fail_silently=False,
         )
-
+        """
     def after_import_row(self, row, row_result, **kwargs):
         user = User.objects.get(email=row['email'])
         user.set_password(row['password'])
@@ -47,9 +47,8 @@ class UserResource(resources.ModelResource):
 
         # Crear o actualizar el modelo Alumno
         Alumno.objects.update_or_create(
-            user=user,
+            legajo=row.get('legajo'),
             defaults={
-                'legajo': row.get('legajo'),
                 'nombre': row.get('nombre'),
                 'apellido': row.get('apellido'),
                 'telefono': row.get('telefono'),
