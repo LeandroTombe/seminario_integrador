@@ -6,24 +6,16 @@ from tablib import Dataset
 from .resources import UserResource
 from django.http import HttpResponse
 from .serializers import ResendOtpSerializer, UserPasswordResetUpdateserializer, UserRegisterSerializer,UserPasswordResetSerailizer,LogoutSerializer, UserVerifyEmailSerializer
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from rest_framework_simplejwt.tokens import RefreshToken
 from .utils import Util
 from django.contrib.auth.password_validation  import validate_password
-from django.http import HttpResponsePermanentRedirect
 import os
 from .permissions import IsAlumno
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions  import ValidationError
 
 
-
-
-class CustomRedirect(HttpResponsePermanentRedirect):
-
-    allowed_schemes = [os.environ.get('APP_SCHEME'), 'http', 'https']
-
+#Registro de usuario
 
 class UserRegisterView(APIView):
     def post(self, request, *args, **kwargs):
@@ -33,7 +25,8 @@ class UserRegisterView(APIView):
             return Response({"message": "Usuario creado exitosamente."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-  
+
+#Login de usuario
     
 class UserLoginView(APIView):
     def post(self, request, *args, **kwargs):
@@ -54,8 +47,10 @@ class UserLoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+#Importar y exportar usuarios
+
 class ImportarUsuariosAPIView(views.APIView):
-    # permission_classes = [IsAdminUser]
+    permission_classes = [IsAlumno]
 
     def post(self, request, *args, **kwargs):
         file = request.FILES['file']
@@ -96,7 +91,7 @@ class UserPasswordResetView(APIView):
             user=User.objects.filter(email=email).first()
             if user:
                 Util.password_reset_otp(user.email)
-                return Response({'msg':'Please check your email otp is send to password reset'},status=status.HTTP_200_OK)
+                return Response({'msg':'Codigo para el reseteo de password enviado correctamente, por favor verifique su email'},status=status.HTTP_200_OK)
             return Response({'msg':'user is not exits'},status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.error,status=status.HTTP_400_BAD_REQUEST) 
     
@@ -111,18 +106,18 @@ class UserPasswordResetUpdateView(APIView):
             otp=serializer.validated_data['otp']
             user=User.objects.filter(otp=otp).first()
             if not user:
-                 return Response({"msg":"User does not exits"},status=status.HTTP_404_NOT_FOUND)
+                 return Response({"msg":"La cuenta no existe"},status=status.HTTP_404_NOT_FOUND)
             try:
                  validate_password(password=password)
                  if password!=password2:
-                            return Response({'msg':'Password and Confirm password did not match'},status=status.HTTP_404_NOT_FOUND)
+                            return Response({'msg':'los password escritos no coinciden'},status=status.HTTP_404_NOT_FOUND)
             except ValidationError as err:
                  return Response(ValidationError({'password':err.messages})) 
             if user.otp!=otp:
-                    return Response({'msg':'you have entered the wrong otp'},status=status.HTTP_404_NOT_FOUND)
+                    return Response({'msg':'has ingresado un codigo incorrecto'},status=status.HTTP_404_NOT_FOUND)
             user.set_password(password)
             user.save()
-            return Response({'msg':'password reset successfully'},status=status.HTTP_200_OK)
+            return Response({'msg':'el password se ha modificado correctamente'},status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 class UserVerifyEmailView(APIView):
@@ -134,18 +129,16 @@ class UserVerifyEmailView(APIView):
             user = User.objects.filter(email=email).first()
             if not user:
                 return Response({
-                    'msg': 'something went wrong',
-                    'data': 'invalid email'
+                    'data': 'la cuenta con el email ingresado no existe'
                 }, status=status.HTTP_400_BAD_REQUEST)
             if user.otp != otp:
                 return Response({
-                    'msg': 'something went wrong',
-                    'data': 'wrong otp'
+                    'data': 'codigo incorrecto'
                 }, status=status.HTTP_400_BAD_REQUEST)
             user.is_verified = True
             user.save()
             return Response({
-                'msg': 'email verified'
+                'msg': 'email verificado correctamente'
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -158,17 +151,16 @@ class ResendOtpView(APIView):
             if user :
                 if not user.is_verified:   
                         Util.email_otp_verifcation(user.email)
-                        return Response({'msg': 'OTP resent, please check your email.'}, status=status.HTTP_200_OK)
+                        return Response({'msg': 'codigo re enviado, por favor verifique en su email'}, status=status.HTTP_200_OK)
                 else:
-                        return Response({'msg': 'Email already verified'}, status=status.HTTP_200_OK)
+                        return Response({'msg': 'Email ya ha sidi verificado'}, status=status.HTTP_200_OK)
             else:
-                 return Response({'msg': 'User not found with the provided email'}, status=status.HTTP_404_NOT_FOUND) 
+                 return Response({'msg': 'la cuenta con el email ingresado no existe'}, status=status.HTTP_404_NOT_FOUND) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutAPIView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
-
-    #permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
 

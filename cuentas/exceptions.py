@@ -6,6 +6,6 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if isinstance(exc, AuthenticationFailed):
-        return JsonResponse({'detail': 'Tu mensaje personalizado de error de autentisadasdcación.'}, status=401)
+        return JsonResponse({'mensaje': 'No tiene los suficientes permisos para ingresar a esta pagina.'}, status=401)
 
     return response

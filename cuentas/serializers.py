@@ -62,22 +62,16 @@ class  ResendOtpSerializer(serializers.Serializer):
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
-    default_error_message = {
-        'bad_token': ('Token is expired or invalid')
-    }
-
     def validate(self, attrs):
         self.token = attrs['refresh']
         return attrs
 
     def save(self, **kwargs):
-
         try:
-            RefreshToken(self.token).blacklist()
-
-        except TokenError:
+            refresh_token = RefreshToken(self.token)
+            refresh_token.blacklist()
+        except Exception as e:
             self.fail('bad_token')
-
 
 
 #agregar el email al token
