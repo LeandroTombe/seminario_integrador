@@ -8,6 +8,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email= models.EmailField(max_length=255, unique=True, verbose_name=_("Direccion email"))
     nombre= models.CharField(max_length=100, verbose_name=_("nombre"))
     apellido= models.CharField(max_length=100, verbose_name=_("apellido"))
+    otp=models.CharField(max_length=6,null=True)
     is_staff= models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_verified= models.BooleanField(default=False)
