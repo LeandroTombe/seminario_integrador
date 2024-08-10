@@ -47,8 +47,6 @@ class UserLoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-#Importar y exportar usuarios
-
 class ImportarUsuariosAPIView(views.APIView):
     permission_classes = [IsAlumno]
 
@@ -57,20 +55,47 @@ class ImportarUsuariosAPIView(views.APIView):
         dataset = Dataset()
         imported_data = dataset.load(file.read().decode('utf-8'), format='csv')
         user_resource = UserResource()
+
+        # Primera importación en modo "dry_run" para validar los datos
         result = user_resource.import_data(dataset, dry_run=True)
+
+        valid_rows = []
+        error_rows = []
+
+        if result.has_errors():
+            for row in result.row_errors():
+                row_index = row[0] + 1
+                for error in row[1]:
+                    error_rows.append({
+                        "row": row_index,
+                        "error": str(error.error)
+                    })
 
         if not result.has_errors():
             user_resource.import_data(dataset, dry_run=False)
-            return Response(status=status.HTTP_201_CREATED)
+
+            for row in dataset.dict:
+                if all([row.get(col) for col in ['email', 'nombre', 'apellido']]):
+                    valid_rows.append({
+                        "legajo": row.get('legajo'),
+                        "nombre": row.get('nombre'),
+                        "apellido": row.get('apellido'),
+                        "email": row.get('email')
+                    })
+
+            return Response({
+                "message": "Usuarios importados correctamente",
+                "valid_rows": valid_rows,
+                "total_rows": len(valid_rows),
+            }, status=status.HTTP_201_CREATED)
         else:
-            # Serializar los errores a un formato JSON compatible
-            error_messages = []
-            for row in result.row_errors():
-                for error in row[1]:
-                    error_messages.append(str(error.error))
-
-            return Response({"errors": error_messages}, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response({
+                "errors": error_rows,
+                "total_rows": len(valid_rows),
+                "failed_imports": len(error_rows),
+                "valid_rows": valid_rows
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
 class ExportarUsuariosAPIView(views.APIView):
     #permission_classes = [CanExportData]
 

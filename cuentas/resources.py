@@ -38,21 +38,48 @@ class UserResource(resources.ModelResource):
         )
         """
     def after_import_row(self, row, row_result, **kwargs):
-        user = User.objects.get(email=row['email'])
-        user.set_password(row['password'])
-        user.save()
+        email = row.get('email')
+        password = row.get('password')
 
-        group, _ = Group.objects.get_or_create(name='Alumno')
-        user.groups.add(group)
+        try:
+            # Validar campos esenciales
+            if not all([email, row.get('nombre'), row.get('apellido')]):
+                print(f"Fila con email '{email}' tiene campos esenciales faltantes.")
+                return
 
-        # Crear o actualizar el modelo Alumno
-        Alumno.objects.update_or_create(
-            legajo=row.get('legajo'),
-            defaults={
+            # Crear o actualizar el usuario
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'nombre': row.get('nombre'),
+                    'apellido': row.get('apellido'),
+                }
+            )
+
+            if not created:
+                print(f"El usuario con email '{email}' ya existe. Actualizando información...")
+
+            if password:
+                user.set_password(password)
+            user.save()
+
+            # Crear o actualizar el modelo Alumno
+            alumno_defaults = {
+                'legajo': row.get('legajo'),
                 'nombre': row.get('nombre'),
                 'apellido': row.get('apellido'),
                 'telefono': row.get('telefono'),
-                'email': row.get('email'),
-                'dni': row.get('dni')
+                'dni': row.get('dni'),
+                'user': user,  # Asocia el modelo Alumno con el usuario
             }
-        )
+
+            # Asegúrate de que `email` sea único en `Alumno` o usa otro campo único
+            Alumno.objects.update_or_create(
+                email=email,
+                defaults=alumno_defaults
+            )
+           
+
+            print(f"Usuario con email '{email}' procesado correctamente.")
+        except Exception as e:
+            print(f"Error al importar fila con email '{email}': {str(e)}")
