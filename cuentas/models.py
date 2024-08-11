@@ -15,6 +15,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     date_joined= models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
+    group = models.CharField(max_length=50, choices=[('alumno', 'Alumno'), ('coordinador', 'Coordinador'), ('admin', 'Admin')]) 
     
     USERNAME_FIELD= "email"
     

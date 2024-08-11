@@ -1,8 +1,11 @@
 import mysql.connector
 import environ
+from django.contrib.auth.models import Group
+
 
 env = environ.Env()
 environ.Env.read_env()
+
 
 def create_database():
     conn = mysql.connector.connect(

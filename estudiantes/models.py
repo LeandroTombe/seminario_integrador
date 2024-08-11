@@ -1,5 +1,6 @@
 from django.db import models
 from .validators import validar_nombre
+from django.conf import settings
 
 class Materia(models.Model):
     idMateria = models.IntegerField(primary_key=True)
@@ -25,6 +26,8 @@ class Alumno(models.Model):
     telefono = models.IntegerField( null=True, blank=True)
     email = models.EmailField()
     dni = models.IntegerField()
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
 
     def __str__(self):
         return f'{self.nombre} {self.apellido}'

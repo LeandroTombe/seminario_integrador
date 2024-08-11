@@ -13,6 +13,10 @@ import os
 from .permissions import IsAlumno
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions  import ValidationError
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
+from .serializers import CustomToken
+
 
 
 #Registro de usuario
@@ -40,12 +44,11 @@ class UserLoginView(APIView):
             return Response({"message": "Contraseña incorrecta."}, status=status.HTTP_400_BAD_REQUEST)
         
         # Generar un token JWT en lugar de usar Token
-        refresh = RefreshToken.for_user(user)
+        refresh = CustomToken.for_user(user)
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }, status=status.HTTP_200_OK)
-
 
 class ImportarUsuariosAPIView(views.APIView):
     permission_classes = [IsAlumno]
@@ -202,3 +205,8 @@ class TestView(APIView):
 
     def get(self, request, *args, **kwargs):
         return Response({"message": "Acceso concedido"}, status=status.HTTP_200_OK)
+    
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

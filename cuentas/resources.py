@@ -1,8 +1,8 @@
 from django.core.mail import send_mail
-from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 from import_export import resources, fields
-from estudiantes.models import Alumno  # Asegúrate de importar tu modelo Alumno
+from estudiantes.models import Alumno
+from django.contrib.auth.models import Group
 
 User = get_user_model()
 
@@ -14,35 +14,28 @@ class UserResource(resources.ModelResource):
     telefono = fields.Field(attribute='telefono', column_name='telefono')
     email = fields.Field(attribute='email', column_name='email')
     dni = fields.Field(attribute='dni', column_name='dni')
+    group = fields.Field(attribute='group', column_name='group')
 
     class Meta:
         model = User
-        export_order = ('email', 'nombre', 'apellido', 'password', 'legajo', 'telefono', 'dni')
+        export_order = ('email', 'nombre', 'apellido', 'password', 'legajo', 'telefono', 'dni', 'group')
 
     def before_import_row(self, row, **kwargs):
         email = row.get('email')
-
         if User.objects.filter(email=email).exists():
             raise ValueError(f"El usuario con el email {email} ya existe. La fila será ignorada.")
-
         password = row['email']
         row['password'] = password
         row['is_active'] = True
-        """
-        send_mail(
-            'Tu nueva contraseña',
-            f'Tu nueva contraseña es: {password}',
-            'from@example.com',
-            [row['email']],
-            fail_silently=False,
-        )
-        """
+        row['group'] = 'alumno'
+
     def after_import_row(self, row, row_result, **kwargs):
         email = row.get('email')
         password = row.get('password')
+        
+        
 
         try:
-            # Validar campos esenciales
             if not all([email, row.get('nombre'), row.get('apellido')]):
                 print(f"Fila con email '{email}' tiene campos esenciales faltantes.")
                 return
@@ -53,8 +46,10 @@ class UserResource(resources.ModelResource):
                 defaults={
                     'nombre': row.get('nombre'),
                     'apellido': row.get('apellido'),
+                    'group': row.get('group'),  # Agregar el rol del usuario
                 }
             )
+            group = Group.objects.get(name='alumno')
 
             if not created:
                 print(f"El usuario con email '{email}' ya existe. Actualizando información...")
@@ -62,23 +57,24 @@ class UserResource(resources.ModelResource):
             if password:
                 user.set_password(password)
             user.save()
+            
+
+            # Asignar el usuario al grupo
+            user.groups.add(group)
+            user.save()
+            
 
             # Crear o actualizar el modelo Alumno
-            alumno_defaults = {
-                'legajo': row.get('legajo'),
-                'nombre': row.get('nombre'),
-                'apellido': row.get('apellido'),
-                'telefono': row.get('telefono'),
-                'dni': row.get('dni'),
-                'user': user,  # Asocia el modelo Alumno con el usuario
-            }
-
-            # Asegúrate de que `email` sea único en `Alumno` o usa otro campo único
             Alumno.objects.update_or_create(
-                email=email,
-                defaults=alumno_defaults
+                user=user,
+                defaults={
+                    'legajo': row.get('legajo'),
+                    'nombre': row.get('nombre'),
+                    'apellido': row.get('apellido'),
+                    'telefono': row.get('telefono'),
+                    'dni': row.get('dni'),
+                }
             )
-           
 
             print(f"Usuario con email '{email}' procesado correctamente.")
         except Exception as e:

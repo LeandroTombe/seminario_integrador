@@ -79,10 +79,19 @@ class LogoutSerializer(serializers.Serializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        # Añadir el correo electrónico al token
-        token['email'] = user.email
+    def get_token(cls, User):
+        print("desde custom:",User.groups)
+        token = super().get_token(User)
+        token['role'] = User.groups.first().name if User.groups.exists() else 'no_role'
+        return token
+    
+class CustomToken(RefreshToken):
+    @classmethod
+    def for_user(cls, user):
+        print("desde refresh:", user)
+        token = super().for_user(user)
+        # Agregar el rol del usuario al token
+        token['role'] = user.groups.first().name if user.groups.exists() else 'no_role'
         return token
 
 class CustomTokenObtainPairView(TokenObtainPairView):
