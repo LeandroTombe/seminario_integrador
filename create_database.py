@@ -1,11 +1,17 @@
+import os
 import mysql.connector
 import environ
-from django.contrib.auth.models import Group
+
+# Configura el entorno de Django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tup.settings")  # Cambia "myproject" por el nombre de tu proyecto
+import django
 
 
+django.setup()
+
+# Lee el archivo .env
 env = environ.Env()
 environ.Env.read_env()
-
 
 def create_database():
     conn = mysql.connector.connect(
