@@ -90,12 +90,15 @@ class ImportarUsuariosAPIView(views.APIView):
                 "message": "Usuarios importados correctamente",
                 "valid_rows": valid_rows,
                 "total_rows": len(valid_rows),
+                "successful_imports": len(valid_rows),  # Asegúrate de incluir esto
+                "failed_imports": 0  # Cambia esto si necesitas contabilizar los fallos
             }, status=status.HTTP_201_CREATED)
         else:
             return Response({
                 "errors": error_rows,
                 "total_rows": len(valid_rows),
                 "failed_imports": len(error_rows),
+                "successful_imports": len(valid_rows),  # También incluir esto en caso de error
                 "valid_rows": valid_rows
             }, status=status.HTTP_400_BAD_REQUEST)
             
