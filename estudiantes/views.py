@@ -5,9 +5,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from cuentas.permissions import IsAlumno
+from rest_framework import status
 
-from .models import Materia, Cuota, Alumno, Cursado, CompromisoPago, Pago, Inhabilitation, Coordinador, Mensajes
-from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, CompromisoPagoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
+from .models import Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, CompromisoPago, Pago, Inhabilitation, Coordinador, Mensajes
+from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, ParametrosCompromisoSerializer, CompromisoPagoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
 
 
 
@@ -69,3 +70,26 @@ class PagoDeleteView(generics.DestroyAPIView):
         instance = self.get_object()
         instance.delete()
         return Response(print("Pago eliminado"))
+
+class ParametrosCompromisoSetValores(APIView):
+    #permission_classes = [IsAuthenticated, IsAlumno]    #Cambiar rol
+    
+    def post(self, request, *args, **kwargs):
+
+        serializer=ParametrosCompromisoSerializer(data=request.data)
+
+        if serializer.is_valid():
+            parametros = serializer.save()
+            return Response({"message": "Compromiso de pago dado de alta"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CompromisoActualView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        queryset = ParametrosCompromiso.objects.filter(año=2024)    # Buscar forma de filtrar el compromiso actual
+        serializer = ParametrosCompromisoSerializer(queryset, many=True)
+
+        if queryset:
+            return Response(serializer.data)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)

@@ -41,13 +41,35 @@ class Cursado(models.Model):
     def __str__(self):
         return f'{self.alumno} - {self.materia}'
 
+class ParametrosCompromiso(models.Model):
+    año = models.IntegerField(primary_key=True)
+    cuatrimestre = models.IntegerField()
+    compromiso_contenido = models.FileField(upload_to='compromiso/', null=True, blank=True)
+    importe_matricula = models.DecimalField(max_digits=10, decimal_places=2)
+    importe_reducido = models.DecimalField(max_digits=10, decimal_places=2)
+    importe_completo = models.DecimalField(max_digits=10, decimal_places=2)
+    importe_pri_venc_comp = models.DecimalField(max_digits=10, decimal_places=2)
+    importe_pri_venc_red = models.DecimalField(max_digits=10, decimal_places=2)
+    importe_seg_venc_comp = models.DecimalField(max_digits=10, decimal_places=2)
+    importe_seg_venc_red = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f'{self.año} - {self.cuatrimestre}'
+
+    #class Meta:
+    #    constraints = [
+    #        models.UniqueConstraint(
+    #            fields=['año', 'cuatrimestre'], name='unique_año_cuatrimestre_combination'
+    #        )
+    #    ]
+
 class CompromisoPago(models.Model):
-    alumno = models.OneToOneField(Alumno, on_delete=models.CASCADE)
-    periodo = models.CharField(max_length=255)
+    alumno = models.OneToOneField(Alumno, on_delete=models.CASCADE, null=True)  #Modificar relacion
+    parametros_compromiso = models.ForeignKey(ParametrosCompromiso, on_delete=models.CASCADE, null=True)
     fechaFirma = models.DateField()
 
     def __str__(self):
-        return f'{self.alumno} - {self.periodo}'
+        return f'{self.alumno} - {self.parametros_compromiso.año} - {self.parametros_compromiso.cuatrimestre}'
 
 from django.db import models
 

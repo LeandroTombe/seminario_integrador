@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-from .models import Materia,Cuota,Alumno,Cursado,CompromisoPago,Pago,Inhabilitation,Coordinador,Mensajes
+from .models import Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,CompromisoPago,Pago,Inhabilitation,Coordinador,Mensajes
 
 
 class MateriaSerializer(serializers.ModelSerializer):
@@ -27,12 +27,17 @@ class CursadoSerializer(serializers.ModelSerializer):
         model = Cursado
         fields = ('alumno', 'materia', 'año', 'cuatrimestre')
 
+class ParametrosCompromisoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ParametrosCompromiso
+        fields = ('año', 'cuatrimestre', 'importe_matricula', 'importe_reducido', 'importe_completo', 'importe_pri_venc_comp', 'importe_pri_venc_red', 'importe_seg_venc_comp', 'importe_seg_venc_red')
+
 class CompromisoPagoSerializer(serializers.ModelSerializer):
     alumno = AlumnoSerializer()
 
     class Meta:
         model = CompromisoPago
-        fields = ('alumno', 'periodo', 'fechaFirma')
+        fields = ('alumno', 'parametros_compromiso' ,'fechaFirma')
 
 
 class PagoSerializer(serializers.ModelSerializer):

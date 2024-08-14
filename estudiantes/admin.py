@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Materia, Alumno,Pago
+from .models import Materia, Alumno,Pago, ParametrosCompromiso
 
 # Register your models here.
 
@@ -16,3 +16,7 @@ class PagoAdmin(admin.ModelAdmin):
     list_display = ('alumno', 'monto_informado', 'fecha_pago_informado', 'monto_confirmado', 'fecha_pago_confirmado', 'forma_pago')
     list_filter = ('forma_pago', 'fecha_pago_informado', 'fecha_pago_confirmado')
     search_fields = ('alumno__nombre', 'alumno__apellido')
+
+@admin.register(ParametrosCompromiso)
+class AlumnoAdmin(admin.ModelAdmin):
+    pass

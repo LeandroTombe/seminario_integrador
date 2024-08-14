@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView
+from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView
 
 
 urlpatterns = [
@@ -16,5 +16,9 @@ urlpatterns = [
     path('pagos/<int:pk>/', PagoDetailView.as_view(), name='movie-detail'),
     path('pagos/all/', AllPagoListView.as_view(), name='all-movies-list'),  
     path('pagos/delete/<int:pk>/', PagoDeleteView.as_view(), name='movie-delete'), 
-    path('pagos/update/<int:pk>/', PagoUpdateView.as_view(), name='movie-update'), 
+    path('pagos/update/<int:pk>/', PagoUpdateView.as_view(), name='movie-update'),
+
+    #Compromiso
+    path('parametrosCompromiso/', ParametrosCompromisoSetValores.as_view(), name='set-valores-compromiso'),
+    path('compromisoActual/', CompromisoActualView.as_view(), name='compromiso-actual')
 ]
