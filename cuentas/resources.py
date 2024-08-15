@@ -20,10 +20,12 @@ class UserResource(resources.ModelResource):
         model = User
         export_order = ('email', 'nombre', 'apellido', 'password', 'legajo', 'telefono', 'dni', 'group')
 
-    def before_import_row(self, row, **kwargs):
+    def before_import_row(self, row, **kwargs,):
         email = row.get('email')
         if User.objects.filter(email=email).exists():
-            raise ValueError(f"El usuario con el email {email} ya existe. La fila será ignorada.")
+            #tratar los campos de acuerdo a que los clientes existan
+            return none;
+        
         password = row['email']
         row['password'] = password
         row['is_active'] = True
@@ -32,7 +34,6 @@ class UserResource(resources.ModelResource):
     def after_import_row(self, row, row_result, **kwargs):
         email = row.get('email')
         password = row.get('password')
-        
         
 
         try:

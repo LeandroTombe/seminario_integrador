@@ -10,7 +10,6 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-
 User = get_user_model()
 
 
@@ -34,6 +33,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
     
+
     
 #Reseteo de password
 
@@ -52,9 +52,11 @@ class UserPasswordResetUpdateserializer(serializers.Serializer):
         model=User
         fields=['otp','password','password2']
         
-class   UserVerifyEmailSerializer(serializers.Serializer):
+class UserVerifyEmailSerializer(serializers.Serializer):
     email=serializers.CharField()
-    otp=serializers.CharField()   
+    otp=serializers.CharField()
+    
+       
 class  ResendOtpSerializer(serializers.Serializer):
     email=serializers.CharField()
      

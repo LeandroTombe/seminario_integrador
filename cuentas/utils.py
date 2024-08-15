@@ -1,6 +1,9 @@
+from datetime import datetime
+import os
 import random
 from django.core.mail import EmailMessage
 from django.core.mail import send_mail
+import pandas as pd
 from cuentas.models import User
 
 import threading
@@ -43,4 +46,42 @@ class Util:
             user_obj=User.objects.get(email=email)
             user_obj.otp=otp
             user_obj.save()
-        
+
+
+def exportar_datos(tablas_correctas, tablas_errores):
+    # Crear una carpeta con la fecha y hora actual
+    fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    export_dir = f'exportaciones/{fecha_hora}'
+    os.makedirs(export_dir, exist_ok=True)
+
+    # Desenvolver tuplas si es necesario
+    tablas_correctas = [item for sublist in tablas_correctas for item in sublist]
+    tablas_errores = [item for sublist in tablas_errores for item in sublist]
+
+    # Crear DataFrame para filas correctas
+    if tablas_correctas:
+        df_correctas = pd.DataFrame(tablas_correctas)
+        print(f"Columnas disponibles en tablas_correctas:\n{df_correctas.columns.tolist()}")
+        # Seleccionar solo las columnas requeridas si están presentes
+        columnas_correctas = ["email", "nombre", "apellido", "legajo", "telefono", "dni"]
+        columnas_presentes = [col for col in columnas_correctas if col in df_correctas.columns]
+        df_correctas = df_correctas[columnas_presentes]
+        correctas_file_path = os.path.join(export_dir, 'filas_correctas.xlsx')
+        df_correctas.to_excel(correctas_file_path, index=False, engine='openpyxl')
+        print(f'Archivo de filas correctas guardado en: {correctas_file_path}')
+    else:
+        print("No hay datos para exportar en filas correctas.")
+
+    # Crear DataFrame para filas incorrectas
+    if tablas_errores:
+        df_errores = pd.DataFrame(tablas_errores)
+        print(f"Columnas disponibles en tablas_errores:\n{df_errores.columns.tolist()}")
+        # Seleccionar solo las columnas requeridas si están presentes
+        columnas_errores = ["email", "nombre", "apellido", "legajo", "telefono", "dni", "error"]
+        columnas_presentes = [col for col in columnas_errores if col in df_errores.columns]
+        df_errores = df_errores[columnas_presentes]
+        errores_file_path = os.path.join(export_dir, 'filas_incorrectas.xlsx')
+        df_errores.to_excel(errores_file_path, index=False, engine='openpyxl')
+        print(f'Archivo de filas incorrectas guardado en: {errores_file_path}')
+    else:
+        print("No hay datos para exportar en filas incorrectas.")

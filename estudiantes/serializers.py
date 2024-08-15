@@ -17,7 +17,7 @@ class CuotaSerializer(serializers.ModelSerializer):
 class AlumnoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Alumno
-        fields = ('legajo', 'nombre', 'apellido', 'telefono', 'email', 'dni')
+        fields = '__all__'
 
 class CursadoSerializer(serializers.ModelSerializer):
     alumno = AlumnoSerializer()
