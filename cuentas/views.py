@@ -116,6 +116,7 @@ class ImportarUsuariosAPIView(views.APIView):
 
 User = get_user_model()
 
+
 class ImportarAlumnoAPIView(views.APIView):
     def post(self, request, *args, **kwargs):
         file = request.FILES.get('file')
@@ -124,118 +125,82 @@ class ImportarAlumnoAPIView(views.APIView):
             return Response({"error": "No ha ingresado ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Leer el archivo con pandas
-            df = pd.read_csv(file)
+            # Determinar la extensión del archivo para elegir el método de lectura
+            file_extension = file.name.split('.')[-1].lower()
 
-            # Obtener la cantidad de filas
-            errores = []
-            # Verificar que las si las filas que se estan procesando estan vacias cualquiera de estos campos
-            required_columns = {'legajo', 'nombre', 'apellido', 'legajo', 'telefono', 'dni'}
-            missing_columns = required_columns - set(df.columns)
-            if missing_columns:
-                 errores.append({
-                    "error": f"la columna: {required_columns - set(df.columns)} en la fila:{index} no esta en el archivo"
-                })
-               
-                
+            if file_extension == 'csv':
+                df = pd.read_csv(file, header=None)
+            elif file_extension in ['xlsx', 'xls']:
+                df = pd.read_excel(file, engine='openpyxl', header=None)
+            else:
+                return Response({"error": "Tipo de archivo no soportado"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Encontrar la primera fila con más de 10 columnas no nulas
+            def has_more_than_n_columns(row, n=10):
+                return row.notna().sum() > n
+
+            header_row_index = df[df.apply(lambda row: has_more_than_n_columns(row), axis=1)].index.min()
             
+            if pd.isna(header_row_index):
+                return Response({"error": "No se encontró una fila adecuada para usar como encabezado."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Establecer la fila identificada como encabezado y eliminar las filas anteriores
+            df.columns = df.iloc[header_row_index]
+            df = df[header_row_index + 1:].reset_index(drop=True)
+
+            # Limpiar nombres de columnas y procesar
+            df.columns = df.columns.str.strip()  # Limpiar espacios en los nombres de columnas
+            df.columns = [str(col).lower() for col in df.columns]  # Convertir nombres a minúsculas
+
+            # Identifica los nombres de columna relevantes
+            legajo_col = next((col for col in df.columns if 'legajo' in col), None)
+
+            if not all([legajo_col]):
+                return Response({"error": "No se encontraron las columnas requeridas en el archivo."}, status=status.HTTP_400_BAD_REQUEST)
+
             tabla_errores = []
             tabla_correctas = []
-            filas_vacias = []
-            filas_correctas = []
-            index = 1
-            # Iterar sobre cada fila del DataFrame
+            filas_errores = []
+            index = header_row_index +1
+            
             for _, row in df.iterrows():
+                if not has_more_than_n_columns(row, 10):  # Verifica si la fila tiene al menos 3 columnas no nulas
+                    continue
                 index += 1
                 data = row.to_dict()
-                #saber la fila que se esta procesando
-                fila = data.get('email')
-                print(f"Procesando fila {fila}...")
 
-                #tener un arreglo de filas vacias para mostrar errores en postman
-                # Verificar si la fila está vacía (es decir, todos los valores son NaN o vacíos)
-                if row.isnull().all() or all(pd.isna(value) or value == '' for value in row):
-                    filas_vacias.append({
-                        "row_data": f"la fila {index} esta vacia"
+                legajo = data.get(legajo_col)
+                nombre = row.iloc[1]
+                apellido = row.iloc[2]
+
+                # Verificar si los valores son válidos
+                if pd.isna(legajo) or pd.isna(nombre):
+                    filas_errores.append({
+                        "error": f"La fila {index} le falta el legajo o el nombre."
                     })
                 else:
-                    # Verificar que todas las columnas obligatorias tengan valores no vacíos
-                    missing_values = [col for col in required_columns if pd.isna(data.get(col)) or data.get(col) == '']
-                    if missing_values:
-                        errores.append({
-                            "error": f"La fila {index} tiene valores vacíos en las columnas: {', '.join(missing_values)}"
-                        }),
-                        data = {
-                            "email": row.get('email'),
-                            "nombre": row.get('nombre'),
-                            "apellido": row.get('apellido'),
-                            "legajo": row.get('legajo'),
-                            "telefono": row.get('telefono'),
-                            "dni": row.get('dni'),
-                        },
-                        tabla_errores.append(data)
-                    else :
-                        # Crear o actualizar el usuario
-                        user, created = User.objects.get_or_create(
-                            email=data.get('email'),
-                            defaults={
-                                'nombre': data.get('nombre'),
-                                'apellido': data.get('apellido'),
-                                'group': 'alumno',  # Agregar el rol del usuario
-                            }
-                        )
-                        data = {
-                            "email": row.get('email'),
-                            "nombre": row.get('nombre'),
-                            "apellido": row.get('apellido'),
-                            "legajo": row.get('legajo'),
-                            "telefono": row.get('telefono'),
-                            "dni": row.get('dni'),
-                        },
-                        tabla_correctas.append(data)
-                        filas_correctas.append({
-                            "row_data": f"la fila {index} se ha procesado correctamente"
-                        })
+                    tabla_correctas.append({
+                        "legajo": legajo,
+                        "nombre": nombre,
+                        "apellido": apellido
+                    })
 
-            
             exportar_datos(tabla_correctas, tabla_errores)
 
-            """
-                # Buscar registros existentes por email o legajo
-                legajo = data.get('legajo')
-                existing_alumno_by_legajo = Alumno.objects.filter(legajo=legajo).first()
-                existing_alumno_by_email = Alumno.objects.filter(user=user).first()
-
-                if existing_alumno_by_legajo:
-                    # Actualizar por legajo
-                    instance = existing_alumno_by_legajo
-                    serializer = AlumnoSerializer(instance, data=data, partial=True)
-                elif existing_alumno_by_email:
-                    # Actualizar por email
-                    instance = existing_alumno_by_email
-                    serializer = AlumnoSerializer(instance, data=data, partial=True)
-                else:
-                    # Crear nuevo registro
-                    serializer = AlumnoSerializer(data=data)
-                
-                if serializer.is_valid():
-                    serializer.save()
-                else:
-                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            """
-            cantidad_errores = len(errores)
-            cantidad_filas_correctas = len(filas_correctas)
-            #como mostrar errores en postman de acuerdo a la fila
+            cantidad_errores = len(filas_errores)
+            cantidad_filas_correctas = len(tabla_correctas)
+            
             return Response({
-                            "filas_vacias":filas_vacias,
-                            "errores": errores,
-                            "correctas": filas_correctas,
-                            "cantidad_errores": cantidad_errores,
-                            "cantidad_filas_correctas": cantidad_filas_correctas,
-                            }, status=status.HTTP_200_OK)
+                "errores": filas_errores,
+                "correctas": tabla_correctas,
+                "cantidad_errores": cantidad_errores,
+                "cantidad_filas_correctas": cantidad_filas_correctas,
+            }, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
         
 class ExportarUsuariosAPIView(views.APIView):
     #permission_classes = [CanExportData]
@@ -348,3 +313,31 @@ class TestView(APIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+
+
+    
+    """
+                # Buscar registros existentes por email o legajo
+                legajo = data.get('legajo')
+                existing_alumno_by_legajo = Alumno.objects.filter(legajo=legajo).first()
+                existing_alumno_by_email = Alumno.objects.filter(user=user).first()
+
+                if existing_alumno_by_legajo:
+                    # Actualizar por legajo
+                    instance = existing_alumno_by_legajo
+                    serializer = AlumnoSerializer(instance, data=data, partial=True)
+                elif existing_alumno_by_email:
+                    # Actualizar por email
+                    instance = existing_alumno_by_email
+                    serializer = AlumnoSerializer(instance, data=data, partial=True)
+                else:
+                    # Crear nuevo registro
+                    serializer = AlumnoSerializer(data=data)
+                
+                if serializer.is_valid():
+                    serializer.save()
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    """
