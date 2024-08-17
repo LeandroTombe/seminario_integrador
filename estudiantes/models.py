@@ -26,7 +26,7 @@ class Alumno(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     telefono = models.IntegerField( null=True, blank=True)
-    dni = models.IntegerField()
+    dni = models.IntegerField(null=True, blank=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 

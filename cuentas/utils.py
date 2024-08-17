@@ -48,7 +48,7 @@ class Util:
             user_obj.save()
 
 
-def exportar_datos(tablas_correctas, tablas_errores):
+def exportar_correctas(tablas_correctas):
     # Crear una carpeta con la fecha y hora actual
     fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     export_dir = f'exportaciones/{fecha_hora}'
@@ -65,13 +65,23 @@ def exportar_datos(tablas_correctas, tablas_errores):
         correctas_file_path = os.path.join(export_dir, 'filas_correctas.xlsx')
         df_correctas.to_excel(correctas_file_path, index=False, engine='openpyxl')
         print(f'Archivo de filas correctas guardado en: {correctas_file_path}')
+    else:
+        print("No hay datos para exportar en filas correctas.")
 
-    # Crear DataFrame para filas incorrectas
+   
+
+
+def exportar_incorrectas(tablas_errores):
+    # Crear una carpeta con la fecha y hora actual
+    fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    export_dir = f'exportaciones/{fecha_hora}'
+    os.makedirs(export_dir, exist_ok=True)
+     # Crear DataFrame para filas incorrectas
     if tablas_errores:
         df_errores = pd.DataFrame(tablas_errores)
         print(f"Columnas disponibles en tablas_errores:\n{df_errores.columns.tolist()}")
         # Seleccionar solo las columnas requeridas si están presentes
-        columnas_errores = ["email", "nombre", "apellido", "legajo", "telefono", "dni", "error"]
+        columnas_errores = ["legajo", "nombre", "apellido"]
         columnas_presentes = [col for col in columnas_errores if col in df_errores.columns]
         df_errores = df_errores[columnas_presentes]
         errores_file_path = os.path.join(export_dir, 'filas_incorrectas.xlsx')

@@ -9,7 +9,7 @@ from .resources import UserResource
 from django.http import HttpResponse
 from .serializers import ResendOtpSerializer, UserPasswordResetUpdateserializer, UserRegisterSerializer,UserPasswordResetSerailizer,LogoutSerializer, UserVerifyEmailSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from .utils import Util, exportar_datos
+from .utils import Util, exportar_correctas, exportar_incorrectas
 from django.contrib.auth.password_validation  import validate_password
 import os
 from .permissions import IsAlumno
@@ -185,8 +185,9 @@ class ImportarAlumnoAPIView(views.APIView):
                         "apellido": apellido
                     })
 
-            exportar_datos(tabla_correctas, tabla_errores)
-
+            exportar_correctas(tabla_correctas)
+            exportar_incorrectas(tabla_errores)
+            
             cantidad_errores = len(filas_errores)
             cantidad_filas_correctas = len(tabla_correctas)
             
@@ -199,8 +200,38 @@ class ImportarAlumnoAPIView(views.APIView):
             
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
+"""
+def exportar_correctas(tabla_correctas):
+    fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    export_dir = f'media/exportaciones/{fecha_hora}'
+    os.makedirs(export_dir, exist_ok=True)
+
+    df_correctas = pd.DataFrame(tabla_correctas)
+    columnas_correctas = ["legajo", "nombre", "apellido"]
+    columnas_presentes = [col for col in columnas_correctas if col in df_correctas.columns]
+    df_correctas = df_correctas[columnas_presentes]
+
+    correctas_file_path = os.path.join(export_dir, 'filas_correctas.xlsx')
+    df_correctas.to_excel(correctas_file_path, index=False, engine='openpyxl')
+
+    return f'/media/exportaciones/{fecha_hora}/filas_correctas.xlsx'
+
+def exportar_incorrectas(tabla_errores):
+    fecha_hora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    export_dir = f'media/exportaciones/{fecha_hora}'
+    os.makedirs(export_dir, exist_ok=True)
+
+    df_errores = pd.DataFrame(tabla_errores)
+    columnas_errores = ["legajo", "nombre", "apellido"]
+    columnas_presentes = [col for col in columnas_errores if col in df_errores.columns]
+    df_errores = df_errores[columnas_presentes]
+
+    errores_file_path = os.path.join(export_dir, 'filas_incorrectas.xlsx')
+    df_errores.to_excel(errores_file_path, index=False, engine='openpyxl')
+
+    return f'/media/exportaciones/{fecha_hora}/filas_incorrectas.xlsx'
+"""
         
 class ExportarUsuariosAPIView(views.APIView):
     #permission_classes = [CanExportData]
