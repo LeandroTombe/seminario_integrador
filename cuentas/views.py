@@ -14,10 +14,11 @@ from django.contrib.auth.password_validation  import validate_password
 import os
 from .permissions import IsAlumno
 from rest_framework.permissions import IsAuthenticated
-from django.core.exceptions  import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 from .serializers import CustomToken
+from django.contrib.auth.hashers import make_password
 
 
 import pandas as pd
@@ -61,61 +62,62 @@ class UserLoginView(APIView):
             'access': str(refresh.access_token),
         }, status=status.HTTP_200_OK)
 
-class ImportarUsuariosAPIView(views.APIView):
-    #permission_classes = [IsAlumno]
-
-    def post(self, request, *args, **kwargs):
-        file = request.FILES['file']
-        dataset = Dataset()
-        imported_data = dataset.load(file.read().decode('utf-8'), format='csv')
-        user_resource = UserResource()
-
-        # Primera importación en modo "dry_run" para validar los datos
-        result = user_resource.import_data(dataset, dry_run=True)
-
-        valid_rows = []
-        error_rows = []
-
-        if result.has_errors():
-            for row in result.row_errors():
-                row_index = row[0] + 1
-                for error in row[1]:
-                    error_rows.append({
-                        "row": row_index,
-                        "error": str(error.error)
-                    })
-
-        if not result.has_errors():
-            user_resource.import_data(dataset, dry_run=False)
-
-            for row in dataset.dict:
-                if all([row.get(col) for col in ['email', 'nombre', 'apellido']]):
-                    valid_rows.append({
-                        "legajo": row.get('legajo'),
-                        "nombre": row.get('nombre'),
-                        "apellido": row.get('apellido'),
-                        "email": row.get('email')
-                    })
-
-            return Response({
-                "message": "Usuarios importados correctamente",
-                "valid_rows": valid_rows,
-                "total_rows": len(valid_rows),
-                "successful_imports": len(valid_rows),  # Asegúrate de incluir esto
-                "failed_imports": 0  # Cambia esto si necesitas contabilizar los fallos
-            }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({
-                "errors": error_rows,
-                "total_rows": len(valid_rows),
-                "failed_imports": len(error_rows),
-                "successful_imports": len(valid_rows),  # También incluir esto en caso de error
-                "valid_rows": valid_rows
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
 
 User = get_user_model()
 
+"""
+         - **actualizadas** (list): Una lista de diccionarios con los registros de alumnos que se han actualizado. Cada diccionario incluye un mensaje con la información sobre la actualización.
+        - **cantidad_filas_actualizadas** (int): La cantidad total de filas de alumnos que se han actualizado.
+        - **errores** (list): Una lista de diccionarios con los errores encontrados durante el procesamiento del archivo. Cada diccionario contiene un mensaje de error.
+        - **correctas** (list): Una lista de diccionarios con los registros de alumnos que se han creado correctamente. Cada diccionario incluye los datos del alumno (legajo, nombre, apellido).
+        - **cantidad_errores** (int): La cantidad total de errores encontrados durante el procesamiento del archivo.
+        - **cantidad_filas_correctas** (int): La cantidad total de filas de datos de alumnos que se han procesado correctamente y creado en la base de datos.
+"""
+
+def crear_actualizar_usuario(legajo, nombre, apellido):
+    # Intenta obtener el usuario existente
+    user = User.objects.filter(legajo=legajo).first()
+    
+    if user:
+        # Si el usuario existe, solo actualiza los campos de nombre y apellido
+        user.nombre = nombre
+        user.apellido = apellido
+        user.save()
+    else:
+        # Si el usuario no existe, crea uno nuevo
+        user = User.objects.create_user(
+            legajo=legajo,
+            nombre=nombre,
+            apellido=apellido,
+            password=make_password(str(legajo)),  # Encriptar la contraseña usando el legajo como password
+            group='alumno'
+        )
+    
+    return user
+def crear_actualizar_alumno(user, nombre, apellido, legajo):
+    creado = False
+    actualizado = False
+
+    if Alumno.objects.filter(legajo=legajo).exists():
+        alumno = Alumno.objects.get(legajo=legajo)
+
+        # Verificar si los campos necesitan ser actualizados
+        if alumno.nombre != nombre or alumno.apellido != apellido:
+            alumno.nombre = nombre
+            alumno.apellido = apellido
+            alumno.user = user
+            alumno.save()
+            actualizado = True
+    else:
+        Alumno.objects.create(
+            legajo=legajo,
+            nombre=nombre,
+            apellido=apellido,
+            user=user
+        )
+        creado = True
+
+    return creado, actualizado
 
 class ImportarAlumnoAPIView(views.APIView):
     def post(self, request, *args, **kwargs):
@@ -158,17 +160,18 @@ class ImportarAlumnoAPIView(views.APIView):
             if not all([legajo_col]):
                 return Response({"error": "No se encontraron las columnas requeridas en el archivo."}, status=status.HTTP_400_BAD_REQUEST)
 
+            tabla_actualizada = []
             tabla_errores = []
             tabla_correctas = []
             filas_errores = []
             index = header_row_index +1
             
             for _, row in df.iterrows():
+                index += 1
                 if not has_more_than_n_columns(row, 10):  # Verifica si la fila tiene al menos 3 columnas no nulas
                     continue
-                index += 1
                 data = row.to_dict()
-
+                
                 legajo = data.get(legajo_col)
                 nombre = row.iloc[1]
                 apellido = row.iloc[2]
@@ -179,19 +182,33 @@ class ImportarAlumnoAPIView(views.APIView):
                         "error": f"La fila {index} le falta el legajo o el nombre."
                     })
                 else:
-                    tabla_correctas.append({
-                        "legajo": legajo,
-                        "nombre": nombre,
-                        "apellido": apellido
-                    })
+                    # Crear o actualizar el registro de user
+                    user=crear_actualizar_usuario(legajo,nombre,apellido)
+
+                    # Crear o actualizar el registro de alumno
+                    creado,actualizado= crear_actualizar_alumno(user,nombre,apellido,legajo)
+                    
+                    if creado:
+                        tabla_correctas.append({
+                            "legajo": legajo,
+                            "nombre": nombre,
+                            "apellido": apellido
+                        })
+                    elif actualizado:
+                        tabla_actualizada.append({
+                           "mensaje": f"La fila {index} con el legajo {legajo} se ha actualizado correctamente."
+                        })
 
             exportar_correctas(tabla_correctas)
             exportar_incorrectas(tabla_errores)
             
             cantidad_errores = len(filas_errores)
             cantidad_filas_correctas = len(tabla_correctas)
+            cantidad_filas_actualizadas = len(tabla_actualizada)
             
             return Response({
+                "actualizadas": tabla_actualizada,
+                "cantidad_filas_actualizadas": cantidad_filas_actualizadas,
                 "errores": filas_errores,
                 "correctas": tabla_correctas,
                 "cantidad_errores": cantidad_errores,
@@ -200,6 +217,9 @@ class ImportarAlumnoAPIView(views.APIView):
             
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+
 
 """
 def exportar_correctas(tabla_correctas):

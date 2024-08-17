@@ -6,4 +6,4 @@ from .resources import UserResource
 @admin.register(User)
 class UserResource(ImportExportModelAdmin):
     resource_class = UserResource
-    list_display = ('email', 'nombre', 'apellido', 'password')
+    list_display = ('legajo', 'nombre', 'apellido', 'password')

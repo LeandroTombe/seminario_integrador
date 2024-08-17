@@ -9,7 +9,7 @@ admin.site.register(Materia)
 
 @admin.register(Alumno)
 class AlumnoAdmin(admin.ModelAdmin):
-    list_display = ('legajo', 'telefono', 'dni')
+    list_display = ('legajo', 'nombre', 'apellido')
 
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):

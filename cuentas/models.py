@@ -5,9 +5,9 @@ from .manager import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    email= models.EmailField(max_length=255, unique=True, verbose_name=_("Direccion email"))
-    nombre= models.CharField(max_length=100, verbose_name=_("nombre"))
+    legajo= models.CharField(max_length=255, unique=True, verbose_name=_("legajo"))
     apellido= models.CharField(max_length=100, verbose_name=_("apellido"))
+    nombre= models.CharField(max_length=100, verbose_name=_("nombre"))
     otp=models.CharField(max_length=6,null=True)
     is_staff= models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -17,7 +17,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_login = models.DateTimeField(auto_now=True)
     group = models.CharField(max_length=50, choices=[('alumno', 'Alumno'), ('coordinador', 'Coordinador'), ('admin', 'Admin')]) 
     
-    USERNAME_FIELD= "email"
+    USERNAME_FIELD= "legajo"
     
     
     REQUIRED_FIELDS = ["nombre", "apellido"]
@@ -26,7 +26,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects= UserManager()
     
     def __str__(self):
-        return self.email
+        return self.legajo
     
     @property
     def get_full_name(self):

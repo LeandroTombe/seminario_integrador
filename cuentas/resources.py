@@ -18,65 +18,12 @@ class UserResource(resources.ModelResource):
 
     class Meta:
         model = User
-        export_order = ('email', 'nombre', 'apellido', 'password', 'legajo', 'telefono', 'dni', 'group')
+        export_order = ('legajo', 'nombre', 'apellido', 'password','telefono', 'dni', 'group')
 
     def before_import_row(self, row, **kwargs,):
-        email = row.get('email')
-        if User.objects.filter(email=email).exists():
-            #tratar los campos de acuerdo a que los clientes existan
-            return none;
+        legajo = row.get('legajo')
         
-        password = row['email']
+        password = row['legajo']
         row['password'] = password
         row['is_active'] = True
         row['group'] = 'alumno'
-
-    def after_import_row(self, row, row_result, **kwargs):
-        email = row.get('email')
-        password = row.get('password')
-        
-
-        try:
-            if not all([email, row.get('nombre'), row.get('apellido')]):
-                print(f"Fila con email '{email}' tiene campos esenciales faltantes.")
-                return
-
-            # Crear o actualizar el usuario
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'nombre': row.get('nombre'),
-                    'apellido': row.get('apellido'),
-                    'group': row.get('group'),  # Agregar el rol del usuario
-                }
-            )
-            group = Group.objects.get(name='alumno')
-
-            if not created:
-                print(f"El usuario con email '{email}' ya existe. Actualizando información...")
-
-            if password:
-                user.set_password(password)
-            user.save()
-            
-
-            # Asignar el usuario al grupo
-            user.groups.add(group)
-            user.save()
-            
-
-            # Crear o actualizar el modelo Alumno
-            Alumno.objects.update_or_create(
-                user=user,
-                defaults={
-                    'legajo': row.get('legajo'),
-                    'nombre': row.get('nombre'),
-                    'apellido': row.get('apellido'),
-                    'telefono': row.get('telefono'),
-                    'dni': row.get('dni'),
-                }
-            )
-
-            print(f"Usuario con email '{email}' procesado correctamente.")
-        except Exception as e:
-            print(f"Error al importar fila con email '{email}': {str(e)}")
