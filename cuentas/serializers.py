@@ -12,6 +12,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 User = get_user_model()
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'nombre', 'apellido', 'legajo']
+
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -19,7 +24,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'nombre', 'apellido', 'password', 'confirm_password']
+        fields = ['legajo', 'nombre', 'apellido', 'password', 'confirm_password']
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
@@ -81,16 +86,17 @@ class LogoutSerializer(serializers.Serializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
-    def get_token(cls, User):
-        print("desde custom:",User.groups)
-        token = super().get_token(User)
-        token['role'] = User.groups.first().name if User.groups.exists() else 'no_role'
+    def get_token(cls, user):
+        print("desde custom:", user.groups)  # Verifica si el usuario tiene grupos
+        token = super().get_token(user)
+        # Agregar el rol del usuario al token
+        token['role'] = user.groups.first().name if user.groups.exists() else 'no_role'
         return token
     
 class CustomToken(RefreshToken):
     @classmethod
     def for_user(cls, user):
-        print("desde refresh:", user)
+        print("desde refresh:", user.groups)  # Verifica si el usuario tiene grupos
         token = super().for_user(user)
         # Agregar el rol del usuario al token
         token['role'] = user.groups.first().name if user.groups.exists() else 'no_role'

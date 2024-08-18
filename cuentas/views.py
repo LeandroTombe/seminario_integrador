@@ -26,6 +26,7 @@ from estudiantes.models import Alumno
 from estudiantes.serializers import AlumnoSerializer
 from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 import io
 
 
@@ -46,12 +47,12 @@ class UserRegisterView(APIView):
     
 class UserLoginView(APIView):
     def post(self, request, *args, **kwargs):
-        email = request.data.get('email')
+        legajo = request.data.get('legajo')
         password = request.data.get('password')
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(legajo=legajo)
         except User.DoesNotExist:
-            return Response({"message": "Correo inexistente"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "legajo inexistente"}, status=status.HTTP_404_NOT_FOUND)
         if not user.check_password(password):
             return Response({"message": "Contraseña incorrecta."}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -89,9 +90,12 @@ def crear_actualizar_usuario(legajo, nombre, apellido):
             legajo=legajo,
             nombre=nombre,
             apellido=apellido,
-            password=make_password(str(legajo)),  # Encriptar la contraseña usando el legajo como password
+            password=str(legajo),  # Encriptar la contraseña usando el legajo como password
             group='alumno'
         )
+        # Asignar el grupo 'alumno'
+        group, created = Group.objects.get_or_create(name='alumno')
+        user.groups.add(group)
     
     return user
 def crear_actualizar_alumno(user, nombre, apellido, legajo):
