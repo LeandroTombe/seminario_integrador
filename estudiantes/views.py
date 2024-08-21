@@ -86,7 +86,13 @@ class ParametrosCompromisoSetValores(APIView):
 class CompromisoActualView(APIView):
 
     def get(self, request, *args, **kwargs):
-        queryset = ParametrosCompromiso.objects.filter(año=datetime.now().year)    # Buscar forma de filtrar el compromiso actual
+        
+        if 1 <= datetime.now().month <= 6:
+            cuatrimestre = 1
+        else:
+            cuatrimestre = 2
+
+        queryset = ParametrosCompromiso.objects.filter(año=datetime.now().year, cuatrimestre=cuatrimestre)    # Buscar forma de filtrar el compromiso actual
         serializer = ParametrosCompromisoSerializer(queryset, many=True)
 
         if queryset:

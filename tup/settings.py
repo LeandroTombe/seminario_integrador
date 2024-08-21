@@ -51,7 +51,8 @@ CORS_ALLOWED_ORIGINS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
+# Configuracion para poder visualizar PDFs
+X_FRAME_OPTIONS = 'ALOWALL'
 
 
 # Application definition
