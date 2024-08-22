@@ -30,7 +30,7 @@ class CursadoSerializer(serializers.ModelSerializer):
 class ParametrosCompromisoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParametrosCompromiso
-        fields = ('año', 'cuatrimestre', 'importe_matricula', 'importe_reducido', 'importe_completo', 'importe_pri_venc_comp', 'importe_pri_venc_red', 'importe_seg_venc_comp', 'importe_seg_venc_red')
+        fields = ('año', 'cuatrimestre', 'compromiso_contenido', 'importe_matricula', 'importe_reducido', 'importe_completo', 'importe_pri_venc_comp', 'importe_pri_venc_red', 'importe_seg_venc_comp', 'importe_seg_venc_red')
 
 class CompromisoPagoSerializer(serializers.ModelSerializer):
     alumno = AlumnoSerializer()

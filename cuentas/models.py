@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group
 from django.utils.translation import gettext_lazy as _
 from .manager import UserManager
 
@@ -31,5 +31,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def get_full_name(self):
         return f"{self.nombre} { self.apellido}"
-
     
+    def save(self, *args, **kwargs):
+        super(User, self).save(*args, **kwargs)
+        
+        # Asignar el grupo correspondiente según el valor del campo group
+        if self.group == 'alumno':
+            group, created = Group.objects.get_or_create(name='alumno')
+            self.groups.add(group)
+        elif self.group == 'coordinador':
+            group, created = Group.objects.get_or_create(name='coordinador')
+            self.groups.add(group)
+        elif self.group == 'admin':
+            group, created = Group.objects.get_or_create(name='admin')
+            self.groups.add(group)        

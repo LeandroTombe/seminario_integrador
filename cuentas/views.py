@@ -139,7 +139,7 @@ class ImportarAlumnoAPIView(views.APIView):
             elif file_extension in ['xlsx', 'xls']:
                 df = pd.read_excel(file, engine='openpyxl', header=None)
             else:
-                return Response({"error": "Tipo de archivo no soportado"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Tipo o formato de archivo no soportado, debe seleccionar csv o xlsx"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Encontrar la primera fila con más de 10 columnas no nulas
             def has_more_than_n_columns(row, n=10):
@@ -183,8 +183,9 @@ class ImportarAlumnoAPIView(views.APIView):
                 # Verificar si los valores son válidos
                 if pd.isna(legajo) or pd.isna(nombre):
                     filas_errores.append({
-                        "error": f"La fila {index} le falta el legajo o el nombre."
+                        "error": f"fila {index}: le falta el legajo, el nombre o el apellido."
                     })
+                    
                 else:
                     # Crear o actualizar el registro de user
                     user=crear_actualizar_usuario(legajo,nombre,apellido)
@@ -200,7 +201,7 @@ class ImportarAlumnoAPIView(views.APIView):
                         })
                     elif actualizado:
                         tabla_actualizada.append({
-                           "mensaje": f"La fila {index} con el legajo {legajo} se ha actualizado correctamente."
+                           "mensaje": f"fila {index}: el legajo {legajo} se ha actualizado el nombre a {nombre} y apelldo a {apellido} ."
                         })
 
             exportar_correctas(tabla_correctas)
@@ -209,7 +210,7 @@ class ImportarAlumnoAPIView(views.APIView):
             cantidad_errores = len(filas_errores)
             cantidad_filas_correctas = len(tabla_correctas)
             cantidad_filas_actualizadas = len(tabla_actualizada)
-            
+            total= cantidad_filas_correctas + cantidad_filas_actualizadas  + cantidad_errores
             return Response({
                 "actualizadas": tabla_actualizada,
                 "cantidad_filas_actualizadas": cantidad_filas_actualizadas,
@@ -217,6 +218,7 @@ class ImportarAlumnoAPIView(views.APIView):
                 "correctas": tabla_correctas,
                 "cantidad_errores": cantidad_errores,
                 "cantidad_filas_correctas": cantidad_filas_correctas,
+                "total": total
             }, status=status.HTTP_200_OK)
             
         except Exception as e:

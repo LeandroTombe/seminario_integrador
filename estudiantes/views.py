@@ -9,7 +9,7 @@ from rest_framework import status
 
 from .models import Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, CompromisoPago, Pago, Inhabilitation, Coordinador, Mensajes
 from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, ParametrosCompromisoSerializer, CompromisoPagoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
-
+from datetime import datetime
 
 
 class MateriasView(APIView):
@@ -86,10 +86,46 @@ class ParametrosCompromisoSetValores(APIView):
 class CompromisoActualView(APIView):
 
     def get(self, request, *args, **kwargs):
-        queryset = ParametrosCompromiso.objects.filter(año=2024)    # Buscar forma de filtrar el compromiso actual
+        
+        if 1 <= datetime.now().month <= 6:
+            cuatrimestre = 1
+        else:
+            cuatrimestre = 2
+
+        queryset = ParametrosCompromiso.objects.filter(año=datetime.now().year, cuatrimestre=cuatrimestre)    # Buscar forma de filtrar el compromiso actual
         serializer = ParametrosCompromisoSerializer(queryset, many=True)
 
         if queryset:
             return Response(serializer.data)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+class AllCompromisoListView(APIView):
+    
+    def get(self, request, *args, **kwargs):
+        queryset = ParametrosCompromiso.objects.all()
+        serializer = ParametrosCompromisoSerializer(queryset, many=True)
+        
+        if queryset:
+            return Response(serializer.data)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+class ParametrosCompromisoEditar(APIView):
+    def put(self, request, *args, **kwargs):
+        año = request.data.get('año')  # Obtener el año desde los datos de la solicitud
+
+        if not año:
+            return Response({"error": "El año es requerido"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            compromiso = ParametrosCompromiso.objects.get(año=año)  # Encuentra el compromiso existente
+        except ParametrosCompromiso.DoesNotExist:
+            return Response({"error": "Compromiso de pago no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ParametrosCompromisoSerializer(compromiso, data=request.data, partial=True)  # Usar partial=True para permitir actualizaciones parciales
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Compromiso de pago actualizado exitosamente"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
