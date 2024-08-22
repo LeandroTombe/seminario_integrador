@@ -35,13 +35,3 @@ class User(AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         super(User, self).save(*args, **kwargs)
         
-        # Asignar el grupo correspondiente según el valor del campo group
-        if self.group == 'alumno':
-            group, created = Group.objects.get_or_create(name='alumno')
-            self.groups.add(group)
-        elif self.group == 'coordinador':
-            group, created = Group.objects.get_or_create(name='coordinador')
-            self.groups.add(group)
-        elif self.group == 'admin':
-            group, created = Group.objects.get_or_create(name='admin')
-            self.groups.add(group)        

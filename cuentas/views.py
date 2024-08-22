@@ -168,18 +168,21 @@ class ImportarAlumnoAPIView(views.APIView):
             tabla_errores = []
             tabla_correctas = []
             filas_errores = []
+            filas_ignoradas = []
             index = header_row_index +1
-            
+            total_general = 0
             for _, row in df.iterrows():
                 index += 1
-                if not has_more_than_n_columns(row, 10):  # Verifica si la fila tiene al menos 3 columnas no nulas
+                if not has_more_than_n_columns(row, 10): # Verifica si la fila tiene al menos 10 columnas no nulas
+                    filas_ignoradas.append({
+                        "error": f"fila {index}: no tiene suficientes columnas con datos para procesar, por lo que se ha ignorado."
+                    })
                     continue
                 data = row.to_dict()
-                
                 legajo = data.get(legajo_col)
                 nombre = row.iloc[1]
                 apellido = row.iloc[2]
-
+                total_general += 1
                 # Verificar si los valores son válidos
                 if pd.isna(legajo) or pd.isna(nombre):
                     filas_errores.append({
@@ -210,7 +213,8 @@ class ImportarAlumnoAPIView(views.APIView):
             cantidad_errores = len(filas_errores)
             cantidad_filas_correctas = len(tabla_correctas)
             cantidad_filas_actualizadas = len(tabla_actualizada)
-            total= cantidad_filas_correctas + cantidad_filas_actualizadas  + cantidad_errores
+            cantidad_filas_ignoradas = len(filas_ignoradas)
+            total_procesadas=cantidad_filas_correctas + cantidad_filas_actualizadas  + cantidad_errores
             return Response({
                 "actualizadas": tabla_actualizada,
                 "cantidad_filas_actualizadas": cantidad_filas_actualizadas,
@@ -218,7 +222,11 @@ class ImportarAlumnoAPIView(views.APIView):
                 "correctas": tabla_correctas,
                 "cantidad_errores": cantidad_errores,
                 "cantidad_filas_correctas": cantidad_filas_correctas,
-                "total": total
+                "filas_ignoradas": filas_ignoradas,
+                "cantidad_filas_ignoradas": cantidad_filas_ignoradas,
+                "total_procesadas": total_procesadas,
+                "total": total_general
+                
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
