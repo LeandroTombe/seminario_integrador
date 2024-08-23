@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
 class Materia(models.Model):
-    idMateria = models.IntegerField(primary_key=True)
+    idMateria = models.IntegerField(primary_key=True ,auto_created=True)
     nombre = models.CharField(max_length=50, validators=[validar_nombre])
 
     def __str__(self):
@@ -39,6 +39,7 @@ class Alumno(models.Model):
 class Cursado(models.Model):
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
     materia = models.ForeignKey(Materia, on_delete=models.CASCADE)
+    #agregar o verificar la comision
     año = models.IntegerField()
     cuatrimestre = models.IntegerField()
 
@@ -46,7 +47,7 @@ class Cursado(models.Model):
         return f'{self.alumno} - {self.materia}'
 
 class ParametrosCompromiso(models.Model):
-    año = models.IntegerField(primary_key=True)
+    año = models.IntegerField()
     cuatrimestre = models.IntegerField()
     compromiso_contenido = models.FileField(upload_to='compromiso/', null=True, blank=True)
     importe_matricula = models.DecimalField(max_digits=10, decimal_places=2)
@@ -61,9 +62,8 @@ class ParametrosCompromiso(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['año', 'cuatrimestre'], name='unique_año_cuatrimestre')
         ]
-        unique_together = ('año', 'cuatrimestre')  # Clave primaria compuesta
 
-    def __str__(self):
+    def str(self):
         return f'{self.año} - {self.cuatrimestre}'
     
 class CompromisoPago(models.Model):

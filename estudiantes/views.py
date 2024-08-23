@@ -114,12 +114,13 @@ class AllCompromisoListView(APIView):
 class ParametrosCompromisoEditar(APIView):
     def put(self, request, *args, **kwargs):
         año = request.data.get('año')  # Obtener el año desde los datos de la solicitud
+        cuatrimestre = request.data.get('cuatrimestre')
 
         if not año:
             return Response({"error": "El año es requerido"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
-            compromiso = ParametrosCompromiso.objects.get(año=año)  # Encuentra el compromiso existente
+            compromiso = ParametrosCompromiso.objects.get(año=año, cuatrimestre=cuatrimestre)  # Encuentra el compromiso existente
         except ParametrosCompromiso.DoesNotExist:
             return Response({"error": "Compromiso de pago no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 

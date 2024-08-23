@@ -1,8 +1,7 @@
-from django.contrib.auth.models import BaseUserManager
+from django.contrib.auth.models import BaseUserManager, Group
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email 
 from django.utils.translation import gettext_lazy as _
-
 
 class UserManager(BaseUserManager):
     
@@ -23,14 +22,23 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_verified", True)
-        extra_fields.setdefault("group", "admin")
-        
+
         if extra_fields.get("is_staff") is not True:
             raise ValueError(_("El campo 'is_staff' debe ser True para ser superusuario"))
-        
+
         if extra_fields.get("is_superuser") is not True:
             raise ValueError(_("El campo 'is_superuser' debe ser True para ser superusuario"))
-        
+
         user = self.create_user(legajo, nombre, apellido, password, **extra_fields)
+        
+        # Asegúrate de que el usuario se ha guardado antes de asignar el grupo
         user.save(using=self._db)
+        
+        # Asignar el grupo "admin" al superusuario
+        admin_group = Group.objects.get(name="Admin")
+        user.groups.add(admin_group)
+        
+        # Guarda el usuario nuevamente para asegurarte de que la asignación del grupo se ha completado
+        user.save(using=self._db)
+        
         return user
