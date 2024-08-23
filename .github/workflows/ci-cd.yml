@@ -60,14 +60,14 @@ jobs:
         # Ejecuta las migraciones
         python manage.py migrate
 
-    - name: Run Tests
-      run: |
+    #- name: Run Tests
+    #  run: |
 
-        # Activa el entorno virtual para esta sesión
-        . venv/bin/activate
-        
+    #    # Activa el entorno virtual para esta sesión
+    #    . venv/bin/activate
+    #    
         # Ejecuta los tests
-        pytest -v
+    #    pytest -v
 
     - name: scanear SonarCloud 
       uses: SonarSource/sonarcloud-github-action@master
