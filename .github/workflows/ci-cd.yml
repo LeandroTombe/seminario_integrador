@@ -31,15 +31,18 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.12
-        
+    - name: Upgrade pip and install specific versions of numpy and pandas
+      run: |
+        python -m pip install --upgrade pip
+        pip install numpy pandas
+               
     - name: Install Dependencies
       run: |  
         # Crea y activa un entorno virtual
         python -m venv venv
         . venv/bin/activate
         
-        # Actualiza pip y instala las dependencias
-        python -m pip cache purge
+
         pip install -r requirements.txt
     - name: crear base de datos
       run: |
