@@ -48,8 +48,6 @@ jobs:
         . venv/bin/activate
         
         # Actualiza pip y instala las dependencias
-        python -m pip install --upgrade pip
-        pip install numpy pandas
         pip install -r requirements.txt
     - name: crear base de datos
       run: |
