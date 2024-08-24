@@ -4,7 +4,8 @@ import random
 from django.core.mail import EmailMessage
 from django.core.mail import send_mail
 import pandas as pd
-from cuentas.models import User
+from estudiantes.models import Alumno
+
 
 import threading
 
@@ -33,17 +34,18 @@ class Util:
             message=f'su codigo es: {otp}'
             email_from='tup@gmail.com'
             send_mail(subject,message,email_from,[email])
-            user_obj=User.objects.get(email=email)
+            user_obj=Alumno.objects.get(email=email).user
+            #obtener el objeto del usuario
             user_obj.otp=otp
             user_obj.save()
         
-    def  password_reset_otp(self,email):
+    def  password_reset_otp(email):
             subject='Codigo de verificacion para cambiar la contraseña'
             otp=random.randint(100000,999999)
             message=f'su codigo es: {otp}'
             email_from='tup@gmail.com'
             send_mail(subject,message,email_from,[email])
-            user_obj=User.objects.get(email=email)
+            user_obj=Alumno.objects.get(email=email).user
             user_obj.otp=otp
             user_obj.save()
 

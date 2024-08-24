@@ -327,11 +327,12 @@ class UserPasswordResetView(APIView):
         serializer=UserPasswordResetSerailizer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             email=serializer.validated_data['email']
-            user=User.objects.filter(email=email).first()
+            user=Alumno.objects.filter(email=email).first().user
+            alumno_email=Alumno.objects.filter(email=email).first().email
             if user:
-                Util.password_reset_otp(user.email)
+                Util.password_reset_otp(alumno_email)
                 return Response({'msg':'Codigo para el reseteo de password enviado correctamente, por favor verifique su email'},status=status.HTTP_200_OK)
-            return Response({'msg':'user is not exits'},status=status.HTTP_404_NOT_FOUND)
+            return Response({'msg':'el usuario no existe'},status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.error,status=status.HTTP_400_BAD_REQUEST) 
     
     
