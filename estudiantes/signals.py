@@ -19,5 +19,4 @@ def cargar_materias(sender, **kwargs):
             if not Materia.objects.filter(nombre=materia_data['nombre']).exists():
                 Materia.objects.create(**materia_data)
                 logger.warning(f"Materia creada: {materia_data['nombre']}")
-            else:
-                logger.warning(f"Materia ya existente: {materia_data['nombre']}")
+           

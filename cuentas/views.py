@@ -98,7 +98,7 @@ def crear_actualizar_usuario(legajo, nombre, apellido):
         user.groups.add(group)
     
     return user
-def crear_actualizar_alumno(user, nombre, apellido, legajo):
+def crear_actualizar_alumno(user, nombre, apellido, legajo,dni,email):
     creado = False
     actualizado = False
 
@@ -106,9 +106,10 @@ def crear_actualizar_alumno(user, nombre, apellido, legajo):
         alumno = Alumno.objects.get(legajo=legajo)
 
         # Verificar si los campos necesitan ser actualizados
-        if alumno.nombre != nombre or alumno.apellido != apellido:
+        if alumno.nombre != nombre or alumno.apellido != apellido or alumno.dni != dni:
             alumno.nombre = nombre
             alumno.apellido = apellido
+            alumno.dni = dni
             alumno.user = user
             alumno.save()
             actualizado = True
@@ -117,6 +118,8 @@ def crear_actualizar_alumno(user, nombre, apellido, legajo):
             legajo=legajo,
             nombre=nombre,
             apellido=apellido,
+            dni=dni,
+            email=email,
             user=user
         )
         creado = True
@@ -157,7 +160,14 @@ class ImportarAlumnoAPIView(views.APIView):
             # Limpiar nombres de columnas y procesar
             df.columns = df.columns.str.strip()  # Limpiar espacios en los nombres de columnas
             df.columns = [str(col).lower() for col in df.columns]  # Convertir nombres a minúsculas
-
+            print(df.columns)
+            
+            if 'apellido y nombres' in df.columns:
+                # Separar el campo 'apellido y nombres' en 'apellido' y 'nombre'
+                df[['apellido', 'nombre']] = df['apellido y nombres'].str.split(',', expand=True)
+                df.drop(columns=['apellido y nombres'], inplace=True)
+                 
+            
             # Identifica los nombres de columna relevantes
             legajo_col = next((col for col in df.columns if 'legajo' in col), None)
 
@@ -171,6 +181,7 @@ class ImportarAlumnoAPIView(views.APIView):
             filas_ignoradas = []
             index = header_row_index +1
             total_general = 0
+            
             for _, row in df.iterrows():
                 index += 1
                 if not has_more_than_n_columns(row, 10): # Verifica si la fila tiene al menos 10 columnas no nulas
@@ -178,10 +189,14 @@ class ImportarAlumnoAPIView(views.APIView):
                         "error": f"fila {index}: no tiene suficientes columnas con datos para procesar, por lo que se ha ignorado."
                     })
                     continue
+                
                 data = row.to_dict()
                 legajo = data.get(legajo_col)
-                nombre = row.iloc[1]
-                apellido = row.iloc[2]
+                nombre = data.get('nombre')
+                apellido = data.get('apellido')
+                dni = data.get('documento')
+                email = data.get('mail')
+                
                 total_general += 1
                 # Verificar si los valores son válidos
                 if pd.isna(legajo) or pd.isna(nombre):
@@ -194,17 +209,19 @@ class ImportarAlumnoAPIView(views.APIView):
                     user=crear_actualizar_usuario(legajo,nombre,apellido)
 
                     # Crear o actualizar el registro de alumno
-                    creado,actualizado= crear_actualizar_alumno(user,nombre,apellido,legajo)
+                    creado,actualizado= crear_actualizar_alumno(user,nombre,apellido,legajo,dni,email)
                     
                     if creado:
                         tabla_correctas.append({
                             "legajo": legajo,
                             "nombre": nombre,
-                            "apellido": apellido
+                            "apellido": apellido,
+                            "dni": dni,
+                            "email": email
                         })
                     elif actualizado:
                         tabla_actualizada.append({
-                           "mensaje": f"fila {index}: el legajo {legajo} se ha actualizado el nombre a {nombre} y apelldo a {apellido} ."
+                           "mensaje": f"fila {index}: el legajo {legajo} se ha actualizado el nombre a {nombre} y apellido a {apellido} ."
                         })
 
             exportar_correctas(tabla_correctas)

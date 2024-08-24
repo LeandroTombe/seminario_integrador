@@ -27,7 +27,7 @@ class Util:
         EmailThread(email).start()
 
 
-    def  email_otp_verifcation(email):
+    def  email_otp_verifcation(self,email):
             subject='Codigo de verificacion para cambiar la contraseña'
             otp=random.randint(1,100)
             message=f'su codigo es: {otp}'
@@ -37,7 +37,7 @@ class Util:
             user_obj.otp=otp
             user_obj.save()
         
-    def  password_reset_otp(email):
+    def  password_reset_otp(self,email):
             subject='Codigo de verificacion para cambiar la contraseña'
             otp=random.randint(100000,999999)
             message=f'su codigo es: {otp}'
