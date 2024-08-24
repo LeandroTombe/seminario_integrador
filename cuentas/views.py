@@ -1,34 +1,27 @@
-from datetime import datetime
 from django.conf import settings
+import numpy as np
 from rest_framework.response import Response
 from rest_framework import status,views,generics
 from rest_framework.views import APIView
 from .models import User
-from tablib import Dataset
 from .resources import UserResource
 from django.http import HttpResponse
 from .serializers import ResendOtpSerializer, UserPasswordResetUpdateserializer, UserRegisterSerializer,UserPasswordResetSerailizer,LogoutSerializer, UserVerifyEmailSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
 from .utils import Util, exportar_correctas, exportar_incorrectas
 from django.contrib.auth.password_validation  import validate_password
-import os
 from .permissions import IsAlumno
 from rest_framework.permissions import IsAuthenticated
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 from .serializers import CustomToken
-from django.contrib.auth.hashers import make_password
 
 
 import pandas as pd
-from estudiantes.models import Alumno
-from estudiantes.serializers import AlumnoSerializer
-from django.core.files.base import ContentFile
+from estudiantes.models import Alumno, Materia
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-import io
-
+from unidecode import unidecode
 
 
 
@@ -126,6 +119,18 @@ def crear_actualizar_alumno(user, nombre, apellido, legajo,dni,email):
 
     return creado, actualizado
 
+def agregar_materias(legajo,codigoMateria):
+    # Obtener el alumno por legajo
+    
+    alumno = Alumno.objects.get(legajo=legajo)
+    materia = Materia.objects.get(idMateria=codigoMateria)
+    
+    alumno.materias.add(materia)
+    
+    
+    
+
+
 class ImportarAlumnoAPIView(views.APIView):
     def post(self, request, *args, **kwargs):
         file = request.FILES.get('file')
@@ -160,14 +165,17 @@ class ImportarAlumnoAPIView(views.APIView):
             # Limpiar nombres de columnas y procesar
             df.columns = df.columns.str.strip()  # Limpiar espacios en los nombres de columnas
             df.columns = [str(col).lower() for col in df.columns]  # Convertir nombres a minúsculas
-            print(df.columns)
+            
             
             if 'apellido y nombres' in df.columns:
                 # Separar el campo 'apellido y nombres' en 'apellido' y 'nombre'
                 df[['apellido', 'nombre']] = df['apellido y nombres'].str.split(',', expand=True)
                 df.drop(columns=['apellido y nombres'], inplace=True)
-                 
             
+            
+            # quitar los tildes y los puntos, y reemplazar los espacios por guiones bajos
+            df.columns = [unidecode(col).replace('.', '').replace(' ', '_') for col in df.columns]
+            print(df.columns)
             # Identifica los nombres de columna relevantes
             legajo_col = next((col for col in df.columns if 'legajo' in col), None)
 
@@ -196,6 +204,8 @@ class ImportarAlumnoAPIView(views.APIView):
                 apellido = data.get('apellido')
                 dni = data.get('documento')
                 email = data.get('mail')
+                materia=data.get('materia')
+
                 
                 total_general += 1
                 # Verificar si los valores son válidos
@@ -210,14 +220,14 @@ class ImportarAlumnoAPIView(views.APIView):
 
                     # Crear o actualizar el registro de alumno
                     creado,actualizado= crear_actualizar_alumno(user,nombre,apellido,legajo,dni,email)
-                    
+                    agregar_materias(legajo,materia)
                     if creado:
                         tabla_correctas.append({
                             "legajo": legajo,
                             "nombre": nombre,
                             "apellido": apellido,
                             "dni": dni,
-                            "email": email
+                            "email": email,
                         })
                     elif actualizado:
                         tabla_actualizada.append({
