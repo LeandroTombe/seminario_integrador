@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
 class Materia(models.Model):
-    idMateria = models.IntegerField(primary_key=True ,auto_created=True)
+    codigo_materia = models.IntegerField(primary_key=True ,auto_created=True)
     nombre = models.CharField(max_length=50, validators=[validar_nombre])
 
     def __str__(self):

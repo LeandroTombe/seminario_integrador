@@ -119,11 +119,19 @@ def crear_actualizar_alumno(user, nombre, apellido, legajo,dni,email):
 
     return creado, actualizado
 
-def agregar_materias(legajo,codigoMateria):
+def agregar_materias(legajo,codigoMateria,materia):
     # Obtener el alumno por legajo
     
     alumno = Alumno.objects.get(legajo=legajo)
-    materia = Materia.objects.get(idMateria=codigoMateria)
+    
+    #pregunto si existe un codigo de materia en la base igual al que se esta ingresando
+    if Materia.objects.filter(codigo_materia=codigoMateria).exists():
+        materia=Materia.objects.get(codigo_materia=codigoMateria)
+    elif Materia.objects.filter(nombre=materia).exists():
+        materia=Materia.objects.get(nombre=materia)
+    else:
+        #manda un mensaje de error si no existe la materia
+        return Response({"error": "No se encontró la materia en la base de datos."}, status=status.HTTP_400_BAD_REQUEST)
     
     alumno.materias.add(materia)
     
@@ -167,14 +175,20 @@ class ImportarAlumnoAPIView(views.APIView):
             df.columns = [str(col).lower() for col in df.columns]  # Convertir nombres a minúsculas
             
             
-            if 'apellido y nombres' in df.columns:
-                # Separar el campo 'apellido y nombres' en 'apellido' y 'nombre'
-                df[['apellido', 'nombre']] = df['apellido y nombres'].str.split(',', expand=True)
-                df.drop(columns=['apellido y nombres'], inplace=True)
-            
-            
-            # quitar los tildes y los puntos, y reemplazar los espacios por guiones bajos
+            # quito los tildes y los puntos, y reemplazar los espacios por guiones bajos
             df.columns = [unidecode(col).replace('.', '').replace(' ', '_') for col in df.columns]
+            
+            # Separo el campo 'apellidoynombres' en 'apellido' y 'nombre'
+            df[['apellido', 'nombre']] = df['apellido_y_nombres'].str.split(',', expand=True)
+
+            # Eliminar la columna original
+            df.drop(columns=['apellido_y_nombres'], inplace=True)
+
+            # Limpio espacios en blanco
+            df['apellido'] = df['apellido'].str.strip()
+            df['nombre'] = df['nombre'].str.strip()
+
+            # Mostrar el DataFrame resultante
             print(df.columns)
             # Identifica los nombres de columna relevantes
             legajo_col = next((col for col in df.columns if 'legajo' in col), None)
@@ -204,7 +218,9 @@ class ImportarAlumnoAPIView(views.APIView):
                 apellido = data.get('apellido')
                 dni = data.get('documento')
                 email = data.get('mail')
-                materia=data.get('materia')
+                
+                codMateria=data.get('materia')
+                materia=data.get('nombre_de_materia')
 
                 
                 total_general += 1
@@ -220,7 +236,7 @@ class ImportarAlumnoAPIView(views.APIView):
 
                     # Crear o actualizar el registro de alumno
                     creado,actualizado= crear_actualizar_alumno(user,nombre,apellido,legajo,dni,email)
-                    agregar_materias(legajo,materia)
+                    agregar_materias(legajo,codMateria,materia)
                     if creado:
                         tabla_correctas.append({
                             "legajo": legajo,
