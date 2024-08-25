@@ -8,6 +8,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     legajo= models.CharField(max_length=255, unique=True, verbose_name=_("legajo"))
     apellido= models.CharField(max_length=100, verbose_name=_("apellido"))
     nombre= models.CharField(max_length=100, verbose_name=_("nombre"))
+    documento= models.CharField(max_length=100, verbose_name=_("documento"), null=True)
     otp=models.CharField(max_length=6,null=True)
     is_staff= models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -20,7 +21,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD= "legajo"
     
     
-    REQUIRED_FIELDS = ["nombre", "apellido"]
+    REQUIRED_FIELDS = ["nombre", "apellido", "documento"]
     
     
     objects= UserManager()

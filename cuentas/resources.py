@@ -11,6 +11,7 @@ class UserResource(resources.ModelResource):
     legajo = fields.Field(attribute='legajo', column_name='legajo')
     nombre = fields.Field(attribute='nombre', column_name='nombre')
     apellido = fields.Field(attribute='apellido', column_name='apellido')
+    documento = fields.Field(attribute='documento', column_name='documento')
     telefono = fields.Field(attribute='telefono', column_name='telefono')
     email = fields.Field(attribute='email', column_name='email')
     dni = fields.Field(attribute='dni', column_name='dni')

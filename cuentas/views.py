@@ -40,23 +40,34 @@ class UserRegisterView(APIView):
     
 class UserLoginView(APIView):
     def post(self, request, *args, **kwargs):
-        legajo = request.data.get('legajo')
+        usuario = request.data.get('usuario')
         password = request.data.get('password')
+
+        if not usuario or not password:
+            return Response({"message": "El campo usuario y la contraseña son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Intentar encontrar el usuario por legajo o documento
+        user = None
         try:
-            user = User.objects.get(legajo=legajo)
+            user = User.objects.get(legajo=usuario)
         except User.DoesNotExist:
-            return Response({"message": "legajo inexistente"}, status=status.HTTP_404_NOT_FOUND)
+            try:
+                if usuario=="00000000":
+                    return Response({"message": "Usuario inexistente."}, status=status.HTTP_404_NOT_FOUND)
+                user = User.objects.get(documento=usuario)
+            except User.DoesNotExist:
+                return Response({"message": "Usuario inexistente."}, status=status.HTTP_404_NOT_FOUND)
+
         if not user.check_password(password):
             return Response({"message": "Contraseña incorrecta."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Generar un token JWT en lugar de usar Token
         refresh = CustomToken.for_user(user)
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }, status=status.HTTP_200_OK)
-
-
+        
 User = get_user_model()
 
 """
@@ -68,14 +79,20 @@ User = get_user_model()
         - **cantidad_filas_correctas** (int): La cantidad total de filas de datos de alumnos que se han procesado correctamente y creado en la base de datos.
 """
 
-def crear_actualizar_usuario(legajo, nombre, apellido):
+def crear_actualizar_usuario(legajo, nombre, apellido,documento):
     # Intenta obtener el usuario existente
     user = User.objects.filter(legajo=legajo).first()
+    
+    if not user:
+        # Intenta obtener el usuario existente por documento
+        user = User.objects.filter(documento=documento).first()
     
     if user:
         # Si el usuario existe, solo actualiza los campos de nombre y apellido
         user.nombre = nombre
         user.apellido = apellido
+        user.documento = documento
+        
         user.save()
     else:
         # Si el usuario no existe, crea uno nuevo
@@ -83,6 +100,7 @@ def crear_actualizar_usuario(legajo, nombre, apellido):
             legajo=legajo,
             nombre=nombre,
             apellido=apellido,
+            documento=documento,
             password=str(legajo),  # Encriptar la contraseña usando el legajo como password
             group='alumno'
         )
@@ -221,18 +239,19 @@ class ImportarAlumnoAPIView(views.APIView):
                 
                 codMateria=data.get('materia')
                 materia=data.get('nombre_de_materia')
-
                 
+                if pd.isna(dni):
+                    dni = "00000000"
                 total_general += 1
                 # Verificar si los valores son válidos
-                if pd.isna(legajo) or pd.isna(nombre):
+                if pd.isna(legajo) or pd.isna(nombre) or pd.isna(apellido):
                     filas_errores.append({
                         "error": f"fila {index}: le falta el legajo, el nombre o el apellido."
                     })
                     
                 else:
                     # Crear o actualizar el registro de user
-                    user=crear_actualizar_usuario(legajo,nombre,apellido)
+                    user=crear_actualizar_usuario(legajo,nombre,apellido,dni)
 
                     # Crear o actualizar el registro de alumno
                     creado,actualizado= crear_actualizar_alumno(user,nombre,apellido,legajo,dni,email)
