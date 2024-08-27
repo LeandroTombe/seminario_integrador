@@ -98,6 +98,7 @@ class CustomToken(RefreshToken):
     def for_user(cls, user):
         print("desde refresh:", user.groups)  # Verifica si el usuario tiene grupos
         token = super().for_user(user)
+        token['nombre'] = f"{user.apellido} {user.nombre}"  # Añadir el nombre completo al token
         # Agregar el rol del usuario al token
         token['role'] = user.groups.first().name if user.groups.exists() else 'no_role'
         return token
