@@ -12,7 +12,7 @@ class MateriaSerializer(serializers.ModelSerializer):
 class CuotaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cuota
-        fields = ('nroCuota', 'año', 'importe', 'fechaVencimiento', 'importePagado')
+        fields = ('nroCuota', 'año', 'importe', 'mora', 'total', 'fechaVencimiento', 'importePagado')
 
 class AlumnoSerializer(serializers.ModelSerializer):
     class Meta:
