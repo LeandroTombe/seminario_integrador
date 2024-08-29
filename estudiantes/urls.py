@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar
+from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView
 
 
 urlpatterns = [
@@ -22,5 +22,7 @@ urlpatterns = [
     path('parametrosCompromiso/', ParametrosCompromisoSetValores.as_view(), name='set-valores-compromiso'),
     path('compromisoActual/', CompromisoActualView.as_view(), name='compromiso-actual'),
     path('historialCompromiso/', AllCompromisoListView.as_view(), name='historial-compromiso'),
-    path('parametrosCompromisoEditar/', ParametrosCompromisoEditar.as_view(), name='editar-compromiso')
+    path('parametrosCompromisoEditar/', ParametrosCompromisoEditar.as_view(), name='editar-compromiso'),
+    path('firmaCompromiso/', FirmarCompromisoView.as_view(), name='firmar-compromiso'),
+    path('listadoFirmaCompromisoActual/', FirmaCompromisoActualListView.as_view(), name='lista-firma-compromiso-actual')
 ]
