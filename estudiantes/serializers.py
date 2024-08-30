@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-from .models import Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,CompromisoPago,Pago,Inhabilitation,Coordinador,Mensajes
+from .models import Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes
 
 
 class MateriaSerializer(serializers.ModelSerializer):
@@ -12,7 +12,7 @@ class MateriaSerializer(serializers.ModelSerializer):
 class CuotaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cuota
-        fields = ('nroCuota', 'año', 'importe', 'fechaVencimiento', 'importePagado')
+        fields = ('nroCuota', 'año', 'importe', 'mora', 'total', 'fechaVencimiento', 'importePagado')
 
 class AlumnoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -32,12 +32,13 @@ class ParametrosCompromisoSerializer(serializers.ModelSerializer):
         model = ParametrosCompromiso
         fields = ('año', 'cuatrimestre', 'compromiso_contenido', 'importe_matricula', 'importe_reducido', 'importe_completo', 'importe_pri_venc_comp', 'importe_pri_venc_red', 'importe_seg_venc_comp', 'importe_seg_venc_red')
 
-class CompromisoPagoSerializer(serializers.ModelSerializer):
+class FirmaCompromisoSerializer(serializers.ModelSerializer):
     alumno = AlumnoSerializer()
 
     class Meta:
-        model = CompromisoPago
+        model = FirmaCompromiso
         fields = ('alumno', 'parametros_compromiso' ,'fechaFirma')
+        read_only_fields = ['fecha_firma']
 
 
 class PagoSerializer(serializers.ModelSerializer):

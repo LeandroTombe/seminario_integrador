@@ -7,10 +7,12 @@ from rest_framework.permissions import IsAuthenticated
 from cuentas.permissions import IsAlumno
 from rest_framework import status
 
-from .models import Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, CompromisoPago, Pago, Inhabilitation, Coordinador, Mensajes
-from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, ParametrosCompromisoSerializer, CompromisoPagoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
+from .models import Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
+from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
 from datetime import datetime
+from django.db import IntegrityError
 
+from .utils import alta_cuotas
 
 class MateriasView(APIView):
     permission_classes = [IsAuthenticated, IsAlumno]
@@ -130,3 +132,69 @@ class ParametrosCompromisoEditar(APIView):
             serializer.save()
             return Response({"message": "Compromiso de pago actualizado exitosamente"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+class FirmarCompromisoView(APIView):
+    permission_classes = [IsAuthenticated] # IsAlumno
+
+    def post(self, request):
+        user = request.user  # Obtén el usuario autenticado
+        año = request.data.get('año')  # Obtener el año desde los datos de la solicitud
+        cuatrimestre = request.data.get('cuatrimestre')
+
+        try:
+            alumno = Alumno.objects.get(user=user)  # Busca el alumno relacionado con el usuario autenticado
+            parametros_compromiso = ParametrosCompromiso.objects.get(año=año, cuatrimestre=cuatrimestre)
+
+            # Crear y guardar la firma del compromiso
+            firma_compromiso = FirmaCompromiso(
+                alumno=alumno,
+                parametros_compromiso=parametros_compromiso,
+            )
+            firma_compromiso.save()
+
+            # Llamar a la función para dar de alta las cuotas después de firmar el compromiso
+            alta_cuotas(alumno, parametros_compromiso)
+
+            return Response({"message": "Compromiso firmado y cuotas creadas exitosamente"}, status=status.HTTP_201_CREATED)
+
+        except IntegrityError:
+            return Response({"error": "El compromiso ya ha sido firmado anteriormente."}, status=status.HTTP_400_BAD_REQUEST)
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except ParametrosCompromiso.DoesNotExist:
+            return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        
+class FirmaCompromisoActualListView(APIView):
+    
+    def get(self, request, *args, **kwargs):
+
+        if 1 <= datetime.now().month <= 6:
+            cuatrimestre = 1
+        else:
+            cuatrimestre = 2
+        
+        # Obtener el último compromiso de pago
+        compromiso = ParametrosCompromiso.objects.filter(año=datetime.now().year, cuatrimestre=cuatrimestre).last()
+        
+        if not compromiso:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # Filtrar los firmantes del compromiso actual
+        queryset = FirmaCompromiso.objects.filter(parametros_compromiso=compromiso)
+        serializer = FirmaCompromisoSerializer(queryset, many=True)
+        
+        return Response(serializer.data)
+
+class EstadoDeCuentaAlumnoView(APIView):
+    permission_classes = [IsAuthenticated] # IsAlumno
+
+    def get(self, request):
+        user = request.user  # Obtén el usuario autenticado
+        try:
+            alumno = Alumno.objects.get(user=user)  # Busca el alumno relacionado con el usuario autenticado
+            queryset = Cuota.objects.filter(alumno=alumno, año=datetime.now().year)
+            serializer = CuotaSerializer(queryset, many=True)
+            return Response(serializer.data)
+
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)

@@ -11,16 +11,6 @@ class Materia(models.Model):
     def __str__(self):
         return self.nombre
 
-class Cuota(models.Model):
-    nroCuota = models.IntegerField()
-    año = models.IntegerField()
-    importe = models.FloatField()
-    fechaVencimiento = models.DateField()
-    importePagado = models.FloatField()
-
-    def __str__(self):
-        return f'Cuota {self.nroCuota} - Año {self.año}'
-
 class Alumno(models.Model):
     legajo = models.IntegerField()
     nombre = models.CharField(max_length=100)
@@ -35,6 +25,19 @@ class Alumno(models.Model):
 
     def __str__(self):
         return f'{self.nombre} {self.apellido} {self.dni}'
+
+class Cuota(models.Model):
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
+    nroCuota = models.IntegerField()
+    año = models.IntegerField()
+    importe = models.DecimalField(max_digits=10, decimal_places=2)
+    mora = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    fechaVencimiento = models.DateField()
+    importePagado = models.FloatField(null=True)
+
+    def __str__(self):
+        return f'Cuota {self.nroCuota} - Año {self.año}'
 
 
 class Cursado(models.Model):
@@ -67,15 +70,18 @@ class ParametrosCompromiso(models.Model):
     def str(self):
         return f'{self.año} - {self.cuatrimestre}'
     
-class CompromisoPago(models.Model):
-    alumno = models.OneToOneField(Alumno, on_delete=models.CASCADE, null=True)  #Modificar relacion
-    parametros_compromiso = models.ForeignKey(ParametrosCompromiso, on_delete=models.CASCADE, null=True)
-    fechaFirma = models.DateField()
+from django.db import models
+
+class FirmaCompromiso(models.Model):
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
+    parametros_compromiso = models.ForeignKey(ParametrosCompromiso, on_delete=models.CASCADE)
+    fechaFirma = models.DateField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('alumno', 'parametros_compromiso')
 
     def __str__(self):
-        return f'{self.alumno} - {self.parametros_compromiso.año} - {self.parametros_compromiso.cuatrimestre}'
-
-from django.db import models
+        return f'{self.alumno} - {self.parametros_compromiso.año} - {self.parametros_compromiso.cuatrimestre} - {self.fechaFirma}'
 
 
 class Pago(models.Model):
