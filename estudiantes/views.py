@@ -90,7 +90,7 @@ class CompromisoActualView(APIView):
 
     def get(self, request, *args, **kwargs):
         
-        if 1 <= datetime.now().month <= 6:
+        if 3 <= datetime.now().month <= 7:
             cuatrimestre = 1
         else:
             cuatrimestre = 2
@@ -133,7 +133,8 @@ class ParametrosCompromisoEditar(APIView):
             serializer.save()
             return Response({"message": "Compromiso de pago actualizado exitosamente"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
- 
+
+# Da de alta la firma de un compromiso de pago por un alumno
 class FirmarCompromisoView(APIView):
     permission_classes = [IsAuthenticated] # IsAlumno
 
@@ -164,12 +165,41 @@ class FirmarCompromisoView(APIView):
             return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
         except ParametrosCompromiso.DoesNotExist:
             return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
+
+# Determina si un alumno ya firmó o no el compromiso de pago actual
+class ExistenciaDeFirmaAlumnoCompromisoActualView(APIView):
+    def get(self, request):
+        user = request.user
+
+        # Determinar el cuatrimestre actual
+        if 3 <= datetime.now().month <= 7:
+            cuatrimestre = 1
+        else:
+            cuatrimestre = 2
+
+        try:
+            # Buscar el alumno relacionado con el usuario autenticado
+            alumno = Alumno.objects.get(user=user)
+
+            # Obtener los parámetros del compromiso de pago para el año y cuatrimestre actuales
+            parametros_compromiso = ParametrosCompromiso.objects.get(año=datetime.now().year, cuatrimestre=cuatrimestre)
         
+            # Verificar si existe una firma del alumno para el compromiso de pago actual
+            firma_existe = FirmaCompromiso.objects.filter(alumno=alumno, parametros_compromiso=parametros_compromiso).exists()
+
+            return Response({"firmado": firma_existe}, status=status.HTTP_200_OK)
+        
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except ParametrosCompromiso.DoesNotExist:
+            return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
+
+# Listar los alumnos que firmaron un compormiso de pago
 class FirmaCompromisoActualListView(APIView):
     
     def get(self, request, *args, **kwargs):
 
-        if 1 <= datetime.now().month <= 6:
+        if 3 <= datetime.now().month <= 7:
             cuatrimestre = 1
         else:
             cuatrimestre = 2
@@ -185,6 +215,7 @@ class FirmaCompromisoActualListView(APIView):
         serializer = FirmaCompromisoSerializer(queryset, many=True)
         
         return Response(serializer.data)
+
 
 class EstadoDeCuentaAlumnoView(APIView):
     permission_classes = [IsAuthenticated] # IsAlumno
