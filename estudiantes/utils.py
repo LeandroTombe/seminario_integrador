@@ -1,5 +1,7 @@
 from .models import Cuota
 from datetime import datetime, timedelta
+from django.utils.timezone import now
+from django.db.models import F
 
 def alta_cuotas(alumno, compromiso):
 
@@ -36,3 +38,19 @@ def alta_cuotas(alumno, compromiso):
             importePagado=0,
         )
         cuota.save()
+
+def saldo_vencido(alumno):
+    cuotas_vencidas = Cuota.objects.filter(
+        alumno=alumno,
+        fechaVencimiento__lt=now(),  # Cuotas cuyo vencimiento ya pasó
+        total__gt=F('importePagado')  # Cuotas que no están completamente pagadas
+    )
+    return sum(float(cuota.total) - cuota.importePagado for cuota in cuotas_vencidas)
+
+def proximo_vencimiento(alumno):
+    proxima_cuota = Cuota.objects.filter(
+        alumno=alumno,
+        fechaVencimiento__gt=now(),  # Cuotas cuyo vencimiento aún no ha pasado
+        total__gt=F('importePagado')  # Cuotas que no están completamente pagadas
+    ).order_by('fechaVencimiento').first()  # Ordenar por la fecha de vencimiento y obtener la primera
+    return proxima_cuota.fechaVencimiento if proxima_cuota else None

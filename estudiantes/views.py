@@ -10,9 +10,10 @@ from rest_framework import status
 from .models import Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
 from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
 from datetime import datetime
+
 from django.db import IntegrityError
 
-from .utils import alta_cuotas
+from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
 
 class MateriasView(APIView):
     permission_classes = [IsAuthenticated, IsAlumno]
@@ -196,5 +197,24 @@ class EstadoDeCuentaAlumnoView(APIView):
             serializer = CuotaSerializer(queryset, many=True)
             return Response(serializer.data)
 
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+
+class ResumenAlumnoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        try:
+            alumno = Alumno.objects.get(user=user)
+            
+            saldo_vencido_resultado = saldo_vencido(alumno)
+            proximo_vencimiento_resultado = proximo_vencimiento(alumno)
+
+            return Response({
+                "saldoVencido": saldo_vencido_resultado,
+                "proximaFechaVencimiento": proximo_vencimiento_resultado
+            }, status=status.HTTP_200_OK)
+        
         except Alumno.DoesNotExist:
             return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
