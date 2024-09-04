@@ -74,6 +74,15 @@ class PagoDeleteView(generics.DestroyAPIView):
         instance.delete()
         return Response(print("Pago eliminado"))
 
+class AllAlumnosInscriptosListView(APIView):
+    def get(self, request, *args, **kwargs):
+
+        # Aca hacer el control de que esten inscriptos este cuatrimestre!
+        queryset = Alumno.objects.all().order_by('apellido')
+        serializer = AlumnoSerializer(queryset, many=True)
+        
+        return Response(serializer.data)
+
 class ParametrosCompromisoSetValores(APIView):
     #permission_classes = [IsAuthenticated, IsAlumno]    #Cambiar rol
     
