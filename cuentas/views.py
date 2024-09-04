@@ -117,10 +117,9 @@ def crear_actualizar_alumno(user, nombre, apellido, legajo,dni,email):
         alumno = Alumno.objects.get(legajo=legajo)
 
         # Verificar si los campos necesitan ser actualizados
-        if alumno.nombre != nombre or alumno.apellido != apellido or alumno.dni != dni:
+        if alumno.nombre != nombre or alumno.apellido != apellido:
             alumno.nombre = nombre
             alumno.apellido = apellido
-            alumno.dni = dni
             alumno.user = user
             alumno.save()
             actualizado = True
@@ -226,7 +225,7 @@ class ImportarAlumnoAPIView(views.APIView):
                 index += 1
                 if not has_more_than_n_columns(row, 10): # Verifica si la fila tiene al menos 10 columnas no nulas
                     filas_ignoradas.append({
-                        "error": f"fila {index}: no tiene suficientes columnas con datos para procesar, por lo que se ha ignorado."
+                        "error": f"fila {index}: no tiene suficientes columnas con datos para procesar(falta legajo, nombre o apellido), por lo que se ha ignorado."
                     })
                     continue
                 
