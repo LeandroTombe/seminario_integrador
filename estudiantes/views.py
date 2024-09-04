@@ -74,6 +74,15 @@ class PagoDeleteView(generics.DestroyAPIView):
         instance.delete()
         return Response(print("Pago eliminado"))
 
+class AllAlumnosInscriptosListView(APIView):
+    def get(self, request, *args, **kwargs):
+
+        # Aca hacer el control de que esten inscriptos este cuatrimestre!
+        queryset = Alumno.objects.all().order_by('apellido')
+        serializer = AlumnoSerializer(queryset, many=True)
+        
+        return Response(serializer.data)
+
 class ParametrosCompromisoSetValores(APIView):
     #permission_classes = [IsAuthenticated, IsAlumno]    #Cambiar rol
     
@@ -166,7 +175,7 @@ class FirmarCompromisoView(APIView):
         except ParametrosCompromiso.DoesNotExist:
             return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
 
-# Determina si un alumno ya firmó o no el compromiso de pago actual
+# Determina si un alumno ya firmó o no el compromiso de pago actual y devuelve la fecha de la firma
 class ExistenciaDeFirmaAlumnoCompromisoActualView(APIView):
     def get(self, request):
         user = request.user
@@ -185,9 +194,9 @@ class ExistenciaDeFirmaAlumnoCompromisoActualView(APIView):
             parametros_compromiso = ParametrosCompromiso.objects.get(año=datetime.now().year, cuatrimestre=cuatrimestre)
         
             # Verificar si existe una firma del alumno para el compromiso de pago actual
-            firma_existe = FirmaCompromiso.objects.filter(alumno=alumno, parametros_compromiso=parametros_compromiso).exists()
+            firma_existe = FirmaCompromiso.objects.get(alumno=alumno, parametros_compromiso=parametros_compromiso)
 
-            return Response({"firmado": firma_existe}, status=status.HTTP_200_OK)
+            return Response({"firmado": firma_existe.fechaFirma}, status=status.HTTP_200_OK)
         
         except Alumno.DoesNotExist:
             return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
@@ -222,24 +231,44 @@ class EstadoDeCuentaAlumnoView(APIView):
 
     def get(self, request):
         user = request.user  # Obtén el usuario autenticado
+
+        if 3 <= datetime.now().month <= 7:
+            cuatrimestre = 1
+        else:
+            cuatrimestre = 2
+
         try:
             alumno = Alumno.objects.get(user=user)  # Busca el alumno relacionado con el usuario autenticado
+            compromiso = ParametrosCompromiso.objects.filter(año=datetime.now().year, cuatrimestre=cuatrimestre).last()
             queryset = Cuota.objects.filter(alumno=alumno, año=datetime.now().year)
+            
+            for cuota in queryset:
+                cuota.aplicar_moras(compromiso)
+            
             serializer = CuotaSerializer(queryset, many=True)
             return Response(serializer.data)
 
         except Alumno.DoesNotExist:
             return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except ParametrosCompromiso.DoesNotExist:
+            return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
 
 class ResumenAlumnoView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
+
+        if 3 <= datetime.now().month <= 7:
+            cuatrimestre = 1
+        else:
+            cuatrimestre = 2
+
         try:
             alumno = Alumno.objects.get(user=user)
+            compromiso = ParametrosCompromiso.objects.filter(año=datetime.now().year, cuatrimestre=cuatrimestre).last()
             
-            saldo_vencido_resultado = saldo_vencido(alumno)
+            saldo_vencido_resultado = saldo_vencido(alumno, compromiso)
             proximo_vencimiento_resultado = proximo_vencimiento(alumno)
 
             return Response({
@@ -249,3 +278,5 @@ class ResumenAlumnoView(APIView):
         
         except Alumno.DoesNotExist:
             return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except ParametrosCompromiso.DoesNotExist:
+            return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)

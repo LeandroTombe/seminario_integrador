@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView
+from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView
 
 
 urlpatterns = [
@@ -26,6 +26,8 @@ urlpatterns = [
     path('firmaCompromiso/', FirmarCompromisoView.as_view(), name='firmar-compromiso'),
     path('existenciaFirmaAlumnoCompromisoActual/', ExistenciaDeFirmaAlumnoCompromisoActualView.as_view(), name='existencia-firma-comp-acutal'),
     path('listadoFirmaCompromisoActual/', FirmaCompromisoActualListView.as_view(), name='lista-firma-compromiso-actual'),
+
+    path('listadoAlumnosInscriptos/', AllAlumnosInscriptosListView.as_view(), name='lista-alumnos-cuatrimestre-actual'),
 
     #Estado de cuenta
     path('estadoDeCuentaAlumno/', EstadoDeCuentaAlumnoView.as_view(), name='estado-de-cuenta-alumno'),

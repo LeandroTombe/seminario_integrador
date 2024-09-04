@@ -3,6 +3,7 @@ from .validators import validar_nombre
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from datetime import datetime
 
 class Materia(models.Model):
     codigo_materia = models.IntegerField(primary_key=True ,auto_created=True)
@@ -21,8 +22,6 @@ class Alumno(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     materias = models.ManyToManyField(Materia, related_name='alumnos')
 
-
-
     def __str__(self):
         return f'{self.nombre} {self.apellido} {self.dni}'
 
@@ -31,10 +30,43 @@ class Cuota(models.Model):
     nroCuota = models.IntegerField()
     año = models.IntegerField()
     importe = models.DecimalField(max_digits=10, decimal_places=2)
-    mora = models.DecimalField(max_digits=10, decimal_places=2)
+    moraPrimerVencimiento = models.DecimalField(max_digits=10, decimal_places=2)
+    fechaPrimerVencimiento = models.DateField()
+    moraSegundoVencimiento = models.DecimalField(max_digits=10, decimal_places=2)
+    fechaSegundoVencimiento = models.DateField()
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    fechaVencimiento = models.DateField()
     importePagado = models.FloatField(null=True)
+
+    def aplicar_moras(self, compromiso):
+        hoy = datetime.now().date()
+
+        if self.alumno.materias.count() > 2:
+            completo = True
+        else:
+            completo = False
+
+        if hoy > self.fechaSegundoVencimiento:
+            if completo:
+                self.moraPrimerVencimiento = compromiso.importe_pri_venc_comp
+                self.moraSegundoVencimiento = compromiso.importe_seg_venc_comp
+            else:
+                self.moraPrimerVencimiento = compromiso.importe_pri_venc_red
+                self.moraSegundoVencimiento = compromiso.importe_seg_venc_red
+
+            if self.total != (self.importe + self.moraPrimerVencimiento + self.moraSegundoVencimiento):
+                self.total += self.moraPrimerVencimiento + self.moraSegundoVencimiento
+
+        elif hoy > self.fechaPrimerVencimiento:
+            if completo:
+                self.moraPrimerVencimiento = compromiso.importe_pri_venc_comp
+            else:
+                self.moraPrimerVencimiento = compromiso.importe_pri_venc_red
+            
+            if self.total != (self.importe + self.moraPrimerVencimiento):
+                self.total += self.moraPrimerVencimiento
+
+        # Guardar los cambios después de aplicar las moras
+        self.save()
 
     def __str__(self):
         return f'Cuota {self.nroCuota} - Año {self.año}'
