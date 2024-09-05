@@ -3,6 +3,8 @@ import numpy as np
 from rest_framework.response import Response
 from rest_framework import status,views,generics
 from rest_framework.views import APIView
+
+from auditar.views import crear_auditoria
 from .models import User
 from .resources import UserResource
 from django.http import HttpResponse
@@ -271,11 +273,29 @@ class ImportarAlumnoAPIView(views.APIView):
             exportar_correctas(tabla_correctas)
             exportar_incorrectas(tabla_errores)
             
+            
+         
+            
+            crear_auditoria(accion='Importación de alumnos')
             cantidad_errores = len(filas_errores)
             cantidad_filas_correctas = len(tabla_correctas)
             cantidad_filas_actualizadas = len(tabla_actualizada)
             cantidad_filas_ignoradas = len(filas_ignoradas)
             total_procesadas=cantidad_filas_correctas + cantidad_filas_actualizadas  + cantidad_errores
+            
+            detalles_importacion = {
+                "actualizadas": tabla_actualizada,
+                "cantidad_filas_actualizadas": cantidad_filas_actualizadas,
+                "errores": filas_errores,
+                "correctas": tabla_correctas,
+                "cantidad_errores": cantidad_errores,
+                "cantidad_filas_correctas": cantidad_filas_correctas,
+                "filas_ignoradas": filas_ignoradas,
+                "cantidad_filas_ignoradas": cantidad_filas_ignoradas,
+                "total_procesadas": total_procesadas,
+                "total": total_general
+            }
+            crear_auditoria(accion='Importación de alumnos', detalles=detalles_importacion)
             return Response({
                 "actualizadas": tabla_actualizada,
                 "cantidad_filas_actualizadas": cantidad_filas_actualizadas,

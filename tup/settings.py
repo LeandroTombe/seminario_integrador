@@ -71,7 +71,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'import_export',
     'cuentas',
-    'estudiantes'
+    'estudiantes',
+    'auditar',
 ]
 
 MIDDLEWARE = [
