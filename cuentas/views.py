@@ -225,7 +225,7 @@ class ImportarAlumnoAPIView(views.APIView):
                 index += 1
                 if not has_more_than_n_columns(row, 10): # Verifica si la fila tiene al menos 10 columnas no nulas
                     filas_ignoradas.append({
-                        "error": f"fila {index}: no tiene suficientes columnas con datos para procesar(falta legajo, nombre o apellido), por lo que se ha ignorado."
+                        "error": f"fila {index}: no tiene suficientes columnas con datos para procesar(falta legajo, nombre y apellido), por lo que se ha ignorado."
                     })
                     continue
                 
