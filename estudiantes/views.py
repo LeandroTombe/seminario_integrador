@@ -86,7 +86,30 @@ class AllAlumnosInscriptosListView(APIView):
 class ParametrosCompromisoSetValores(APIView):
     #permission_classes = [IsAuthenticated, IsAlumno]    #Cambiar rol
     
+    # filtar por año y cuatrimestre, en caso que exista, devolver error
+    def get(self, request, *args, **kwargs):
+        año = request.GET.get('año')
+        cuatrimestre = request.GET.get('cuatrimestre')
+         
+        # buscar si ya existe un compromiso para ese año y cuatrimestre
+        queryset = ParametrosCompromiso.objects.filter(año=año, cuatrimestre=cuatrimestre)
+        serializer = ParametrosCompromisoSerializer(queryset, many=True)
+        # en caso de que exista, devolver error
+        if queryset:
+            return Response({"error": "Ya existe un compromiso para el año y cuatrimestre especificados"}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+    
     def post(self, request, *args, **kwargs):
+        
+        #agregar el get de año y cuatrimestre
+        
+        año = request.data.get('año')
+        cuatrimestre = request.data.get('cuatrimestre')
+        
+        if ParametrosCompromiso.objects.filter(año=año, cuatrimestre=cuatrimestre).exists():
+            return Response({"error": "Ya existe un compromiso para el año y cuatrimestre especificados"}, status=status.HTTP_400_BAD_REQUEST)
+        
 
         serializer=ParametrosCompromisoSerializer(data=request.data)
 
