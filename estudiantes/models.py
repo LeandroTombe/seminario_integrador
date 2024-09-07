@@ -35,7 +35,7 @@ class Cuota(models.Model):
     moraSegundoVencimiento = models.DecimalField(max_digits=10, decimal_places=2)
     fechaSegundoVencimiento = models.DateField()
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    importePagado = models.FloatField(null=True)
+    importePagado = models.DecimalField(max_digits=10, decimal_places=2)
 
     def aplicar_moras(self, compromiso):
         hoy = datetime.now().date()

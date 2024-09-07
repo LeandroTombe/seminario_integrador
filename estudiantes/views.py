@@ -1,9 +1,12 @@
+from decimal import Decimal
 from django.shortcuts import render
 
+import pandas as pd
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from unidecode import unidecode
 from cuentas.permissions import IsAlumno
 from rest_framework import status
 
@@ -12,6 +15,8 @@ from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, C
 from datetime import datetime
 
 from django.db import IntegrityError
+from django.db.models import Q,F
+from django.db.models.functions import Lower, Trim
 
 from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
 
@@ -303,3 +308,241 @@ class ResumenAlumnoView(APIView):
             return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
         except ParametrosCompromiso.DoesNotExist:
             return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        
+#Importacion de las cuotas asociadas a los alumnos
+
+class ImportarCuotaPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        file = request.FILES.get('file')
+        
+        if not file:
+            return Response({"error": "No ha ingresado ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Determinar la extensión del archivo para elegir el método de lectura
+            file_extension = file.name.split('.')[-1].lower()
+
+            if file_extension == 'csv':
+                df = pd.read_csv(file, header=1)
+            elif file_extension in ['xlsx', 'xls']:
+                
+                df = pd.read_excel(file, engine='openpyxl', header=1)
+            else:
+                return Response({"error": "Tipo o formato de archivo no soportado, debe seleccionar csv o xlsx"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Encontrar la primera fila con más de 10 columnas no nulas
+            def has_more_than_n_columns(row, n=10):
+                return row.notna().sum() > n
+
+            header_row_index = df[df.apply(lambda row: has_more_than_n_columns(row), axis=1)].index.min()
+            
+            if pd.isna(header_row_index):
+                return Response({"error": "No se encontró una fila adecuada para usar como encabezado."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Establecer la fila identificada como encabezado y eliminar las filas anteriores
+            df.columns = df.iloc[header_row_index]
+            df = df[header_row_index + 1:].reset_index(drop=True)
+
+            # Limpiar nombres de columnas y procesar
+            df.columns = df.columns.str.strip()  # Limpiar espacios en los nombres de columnas
+            df.columns = [str(col).lower() for col in df.columns]  # Convertir nombres a minúsculas
+            
+            
+            # quito los tildes y los puntos, y reemplazar los espacios por guiones bajos
+            df.columns = [unidecode(col).replace('.', '').replace(' ', '_') for col in df.columns]
+
+            df['nombre_medio_de_pago'] = df['nombre_medio_de_pago'].astype(str)
+
+            # Identifica los nombres de columna relevantes
+            pagos=[]
+            filas_ignoradas = []
+            correctas = []
+            errores=[]
+
+            index = header_row_index +3
+            # Eliminar columnas duplicadas
+            df = df.loc[:,~df.columns.duplicated()]
+            for _, row in df.iterrows():
+                index += 1
+                print(index)
+                if not has_more_than_n_columns(row, 10): # Verifica si la fila tiene al menos 10 columnas no nulas
+                    filas_ignoradas.append({
+                        "error": f"fila {index}: no tiene suficientes columnas con datos para procesar(falta legajo, nombre y apellido), por lo que se ha ignorado."
+                    })
+                    continue
+                data = row.to_dict()
+                medio_pago = data.get('nombre_medio_de_pago')
+                nombre= data.get('nombre_originante_del_ingreso').split(',')[0]
+                apellido= data.get('nombre_originante_del_ingreso').split(',')[1]
+
+                #en este caso debo preguntar si la descripcion de la cuota tiene el mes, y si es asi, tomarlo. como condicion
+                descripcion_cuota = data.get('descripcion_recibo')
+                
+                #en el dni debo controlar que sea un numero valido, en caso de ser 0. debo tratar por su nombe y apellido
+                dni = data.get('nro_doc')
+                
+                #EN CASO DE QUE SEA NEGATIVO, que hago con su  carga? sumo el total?
+                monto= data.get('monto')
+                
+                #necesito saber como viene la fecha, y como es el formato
+                fecha_pago = data.get('fecha_dga')
+                
+                #tratamiendo del pago
+                
+                medio_pago= tratamientoMedioPago(medio_pago)
+                    
+                #tratamiento de los meses
+                
+                cuota = tratemientoFecha(descripcion_cuota)
+                
+                #el tratamiento de los alumnos y los pagos mas complejo
+                try:
+                    correcto= tramientoAlumno(nombre, apellido, dni, cuota, monto, medio_pago,errores,index)
+                    print(correcto)
+                    if correcto=="correcto":
+                        correctas.append({
+                            "nombre": nombre,
+                            "apellido": apellido,
+                            "monto": monto,
+                            "medio_pago": medio_pago,
+                        })
+                except Exception as e:
+                    errores.append({
+                        "error": f"fila {index}: {str(e)}"
+                    })
+                
+            return Response({
+                "message": "Importación de pagos completada",
+                "pagos": correctas,
+                "errores": errores,
+             
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+def tramientoAlumno(nombre, apellido, dni, cuota, monto, medio_pago, errores,index):
+    try:
+        alumno = buscar_alumno_por_dni_o_nombre(dni, nombre, apellido)
+        if not alumno:
+            errores.append({
+                "error": f"fila {index}: El alumno con DNI {dni} o nombre {nombre} {apellido} no existe."
+            })
+        if cuota != 0:
+            tratamientoCoutaDistintoCero(alumno.id, monto, medio_pago)
+        else:
+            tratamientoCoutaCero(alumno.id, monto, medio_pago)
+        return "correcto"
+    except Exception as e:
+        return str(e)
+
+
+
+
+def tratamientoPago(id_alumno, monto,medio_pago):
+    # crear un pago
+    
+    # TENER CUIDADO CON LA FECHA PORQUE ES LA DEL PAGO QUE SE CONFIRMO EN SYSADMIN, PARA LA PRUEBA HARÉ UNA FECHA DE HOY porque no me queda en claro como recibe la fecha
+    #que diferencia hay entre monto_informado y monto_confirmado?
+    pago = Pago(
+        alumno_id=id_alumno,
+        monto_informado=0,
+        monto_confirmado=monto,
+        fecha_pago_informado=datetime.now(),
+        fecha_pago_confirmado=datetime.now(),
+        forma_pago=medio_pago,
+        comprobante_de_pago=None,
+    )
+    
+    #guardar el pago
+    pago.save()
+    
+def tratamientoCoutaDistintoCero(id_alumno, monto, medio_pago):
+    cuota = Cuota.objects.get(alumno_id=id_alumno, nroCuota=cuota)
+    cuota.importePagado +=monto
+    cuota.save()
+    tratamientoPago(id_alumno, monto,medio_pago)
+    
+    
+    
+def tratamientoCoutaCero(id_alumno, monto, medio_pago):
+   # Filtra las cuotas pendientes para el alumno
+    cuotas_pendientes = Cuota.objects.filter(
+        total__gt=F('importePagado'), alumno_id=id_alumno  # total mayor que el importe pagado
+    ).order_by('fechaPrimerVencimiento')
+
+    # Itera sobre las cuotas mientras haya monto por pagar
+    while monto > 0 and cuotas_pendientes.exists():
+        # Obtén la cuota más reciente
+        cuota_mas_reciente = cuotas_pendientes.first()
+
+        # Calcula el importe pendiente de la cuota
+        importe_pendiente = cuota_mas_reciente.total - cuota_mas_reciente.importePagado
+
+        # Aplica el pago a la cuota
+        if monto >= importe_pendiente:
+            # Si el monto es mayor o igual al importe pendiente
+            monto -= importe_pendiente
+            cuota_mas_reciente.importePagado = cuota_mas_reciente.total
+        else:
+            # Si el monto es menor que el importe pendiente
+            cuota_mas_reciente.importePagado += monto
+            monto = 0  # El monto se ha agotado
+
+        # Guarda la cuota actualizada
+        cuota_mas_reciente.save()
+
+        # Actualiza el queryset para obtener la siguiente cuota pendiente
+        cuotas_pendientes = Cuota.objects.filter(
+            total__gt=F('importePagado'), alumno_id=id_alumno
+        ).order_by('fechaPrimerVencimiento')
+        
+        # Realiza el tratamiento del pago (si es necesario)
+        tratamientoPago(id_alumno, monto, medio_pago)
+                            
+                            
+
+
+def tratamientoMedioPago(medio_pago):
+    diferentes_pagos={
+                    "caja": "efectivo",
+                    "transferencia": "transferencia",
+                }
+    for palabra,valor in diferentes_pagos.items():
+        if palabra in medio_pago.lower():
+            medio_pago = valor
+    
+    if medio_pago not in ["efectivo", "transferencia"]:
+        medio_pago = "otro"
+    return medio_pago
+
+
+def tratemientoFecha(descripcion_cuota):
+    diferentes_meses = {
+        "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5,
+        "junio": 6, "julio": 7, "agosto": 8, "septiembre": 9, 
+        "octubre": 10, "noviembre": 11, "diciembre": 12,
+    }
+    cuota = 0  # Inicializar cuota en 0 por defecto
+    for palabra, valor in diferentes_meses.items():
+        if palabra in descripcion_cuota.lower():
+            cuota = valor
+            break
+    return cuota
+            
+            
+            
+
+
+def buscar_alumno_por_dni_o_nombre(dni, nombre, apellido):
+    if dni != 0:
+        return Alumno.objects.get(dni=dni)
+    else:
+        nombre_apellido = nombre.lower().split() + apellido.lower().split()
+        filtro = Q()
+        for nombre in nombre_apellido:
+            filtro &= (Q(nombre__icontains=nombre) | Q(apellido__icontains=nombre))
+        return Alumno.objects.filter(filtro).first()

@@ -69,7 +69,7 @@ def saldo_vencido(alumno, compromiso):
         if cuota.fechaPrimerVencimiento <= last_day_of_due_month and cuota.fechaPrimerVencimiento < today:
             if today > last_day_of_due_month:
                 # Si hoy es después del último día del mes de vencimiento y la cuota no está pagada, se suma al saldo vencido
-                saldo_vencido_total += float(cuota.total) - cuota.importePagado
+                saldo_vencido_total += (cuota.total) - cuota.importePagado
 
     return saldo_vencido_total
 
