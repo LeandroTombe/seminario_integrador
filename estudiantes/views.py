@@ -355,16 +355,18 @@ class ImportarCuotaPIView(APIView):
 
             df['nombre_medio_de_pago'] = df['nombre_medio_de_pago'].astype(str)
 
+            
             # Identifica los nombres de columna relevantes
             pagos=[]
             filas_ignoradas = []
             correctas = []
             errores=[]
-
+            print(df.columns)
             index = header_row_index +3
             # Eliminar columnas duplicadas
             df = df.loc[:,~df.columns.duplicated()]
             for _, row in df.iterrows():
+                
                 index += 1
                 print(index)
                 if not has_more_than_n_columns(row, 10): # Verifica si la fila tiene al menos 10 columnas no nulas
@@ -374,8 +376,16 @@ class ImportarCuotaPIView(APIView):
                     continue
                 data = row.to_dict()
                 medio_pago = data.get('nombre_medio_de_pago')
-                nombre= data.get('nombre_originante_del_ingreso').split(',')[0]
-                apellido= data.get('nombre_originante_del_ingreso').split(',')[1]
+                #en este caso debo preguntar si el nombre y apellido vienen juntos, y si es asi, tomarlo. como condicion
+                if ',' in data.get('nombre_originante_del_ingreso'):
+                    nombre= data.get('nombre_originante_del_ingreso').split(',')[0]
+                    apellido= data.get('nombre_originante_del_ingreso').split(',')[1]
+                else:
+                    errores.append({
+                        "error": f"fila {index}: El nombre y apellido no están separados por coma."
+                    })
+                    continue
+                    
 
                 #en este caso debo preguntar si la descripcion de la cuota tiene el mes, y si es asi, tomarlo. como condicion
                 descripcion_cuota = data.get('descripcion_recibo')
@@ -394,12 +404,10 @@ class ImportarCuotaPIView(APIView):
                 medio_pago= tratamientoMedioPago(medio_pago)
                     
                 #tratamiento de los meses
-                
-                cuota = tratemientoFecha(descripcion_cuota)
-                
+                                
                 #el tratamiento de los alumnos y los pagos mas complejo
                 try:
-                    correcto= tramientoAlumno(nombre, apellido, dni, cuota, monto, medio_pago,errores,index)
+                    correcto= tramientoAlumno(nombre, apellido, dni, monto, medio_pago,errores,index)
                     print(correcto)
                     if correcto=="correcto":
                         correctas.append({
@@ -424,17 +432,16 @@ class ImportarCuotaPIView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         
-def tramientoAlumno(nombre, apellido, dni, cuota, monto, medio_pago, errores,index):
+def tramientoAlumno(nombre, apellido, dni, monto, medio_pago, errores,index):
     try:
         alumno = buscar_alumno_por_dni_o_nombre(dni, nombre, apellido)
         if not alumno:
+            print("no existe")
             errores.append({
                 "error": f"fila {index}: El alumno con DNI {dni} o nombre {nombre} {apellido} no existe."
             })
-        if cuota != 0:
-            tratamientoCoutaDistintoCero(alumno.id, monto, medio_pago)
-        else:
-            tratamientoCoutaCero(alumno.id, monto, medio_pago)
+            
+        tratamientoCoutaCero(alumno.id, monto, medio_pago)
         return "correcto"
     except Exception as e:
         return str(e)
@@ -519,27 +526,18 @@ def tratamientoMedioPago(medio_pago):
         medio_pago = "otro"
     return medio_pago
 
-
-def tratemientoFecha(descripcion_cuota):
-    diferentes_meses = {
-        "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5,
-        "junio": 6, "julio": 7, "agosto": 8, "septiembre": 9, 
-        "octubre": 10, "noviembre": 11, "diciembre": 12,
-    }
-    cuota = 0  # Inicializar cuota en 0 por defecto
-    for palabra, valor in diferentes_meses.items():
-        if palabra in descripcion_cuota.lower():
-            cuota = valor
-            break
-    return cuota
-            
             
             
 
 
 def buscar_alumno_por_dni_o_nombre(dni, nombre, apellido):
     if dni != 0:
-        return Alumno.objects.get(dni=dni)
+        alumno= Alumno.objects.filter(dni=dni).first()
+        if alumno:
+            return alumno
+        else:
+            return None
+        
     else:
         nombre_apellido = nombre.lower().split() + apellido.lower().split()
         filtro = Q()
