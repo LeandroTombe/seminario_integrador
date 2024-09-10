@@ -291,6 +291,34 @@ class EstadoDeCuentaAlumnoView(APIView):
             return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
         except ParametrosCompromiso.DoesNotExist:
             return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def post(self, request):
+        # Obtén el ID del alumno desde el cuerpo de la solicitud
+        alumno_id = request.data.get('alumno')
+
+        if alumno_id is None:
+            return Response({"error": "El ID del alumno no ha sido proporcionado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 3 <= datetime.now().month <= 7:
+            cuatrimestre = 1
+        else:
+            cuatrimestre = 2
+
+        try:
+            alumno = Alumno.objects.get(id=alumno_id)  # Busca el alumno con el ID proporcionado
+            compromiso = ParametrosCompromiso.objects.filter(año=datetime.now().year, cuatrimestre=cuatrimestre).last()
+            queryset = Cuota.objects.filter(alumno=alumno, año=datetime.now().year)
+            
+            for cuota in queryset:
+                cuota.aplicar_moras(compromiso)
+            
+            serializer = CuotaSerializer(queryset, many=True)
+            return Response(serializer.data)
+
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except ParametrosCompromiso.DoesNotExist:
+            return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
 
 class ResumenAlumnoView(APIView):
     permission_classes = [IsAuthenticated]
@@ -320,7 +348,29 @@ class ResumenAlumnoView(APIView):
         except ParametrosCompromiso.DoesNotExist:
             return Response({"error": "El compromiso de pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
         
+class ObtenerMateriasPorCodigoView(APIView):
+    def post(self, request):
+        # 1. Obtener los códigos de materias desde el body de la request
+        codigos = request.data.get('codigos', [])
         
+        if not codigos or not isinstance(codigos, list):
+            return Response(
+                {"error": "Se debe proporcionar un array de códigos."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Filtrar las materias que coinciden con los códigos
+        materias = Materia.objects.filter(codigo_materia__in=codigos)
+        
+        if not materias.exists():
+            return Response(
+                {"error": "No se encontraron materias con los códigos proporcionados."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 3. Serializar y devolver los nombres de las materias
+        serializer = MateriaSerializer(materias, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
         
 #Importacion de las cuotas asociadas a los alumnos
 
