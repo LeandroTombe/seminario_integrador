@@ -236,6 +236,7 @@ class FirmaCompromisoActualListView(APIView):
     
     def get(self, request, *args, **kwargs):
 
+        # Determinar el cuatrimestre en función del mes actual
         if 3 <= datetime.now().month <= 7:
             cuatrimestre = 1
         else:
@@ -247,11 +248,21 @@ class FirmaCompromisoActualListView(APIView):
         if not compromiso:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
-        # Filtrar los firmantes del compromiso actual
-        queryset = FirmaCompromiso.objects.filter(parametros_compromiso=compromiso)
-        serializer = FirmaCompromisoSerializer(queryset, many=True)
+        # Aca hacer el control de que esten inscriptos este cuatrimestre!
+        alumnos = Alumno.objects.all().order_by('apellido')
         
-        return Response(serializer.data)
+        # Obtener los firmantes del compromiso actual
+        firmantes_ids = FirmaCompromiso.objects.filter(parametros_compromiso=compromiso).values_list('alumno_id', flat=True)
+        
+        # Crear una lista con los datos de los alumnos y si firmaron o no el compromiso
+        alumnos_con_firma = []
+        for alumno in alumnos:
+            alumnos_con_firma.append({
+                'alumno': AlumnoSerializer(alumno).data,
+                'firmo_compromiso': alumno.id in firmantes_ids
+            })
+
+        return Response(alumnos_con_firma, status=status.HTTP_200_OK)
 
 
 class EstadoDeCuentaAlumnoView(APIView):
