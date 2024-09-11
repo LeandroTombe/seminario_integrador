@@ -7,7 +7,7 @@ from .models import Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompr
 class MateriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Materia
-        fields = ('idMateria', 'nombre')
+        fields = ('codigo_materia', 'nombre')
 
 class CuotaSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView
+from .views import MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView
 
 
 urlpatterns = [
@@ -10,6 +10,7 @@ urlpatterns = [
     path('materias/', MateriaListView.as_view(), name='materia-list'),
     path('materias/create/', MateriaCreateView.as_view(), name='materia-create'),
     path('materias/<int:pk>/', MateriaDetailView.as_view(), name='materia-detail'),
+    path('materiasPorCodigo/', ObtenerMateriasPorCodigoView.as_view(), name='nombre-materias-por-codigo'),
     
     #Pagos
     path('pagos/', PagoListCreateView.as_view(), name='movie-list-create'),
