@@ -1,11 +1,12 @@
 from decimal import Decimal
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 
 import pandas as pd
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from unidecode import unidecode
 from cuentas.permissions import IsAlumno
 from rest_framework import status
@@ -19,6 +20,10 @@ from django.db.models import Q,F
 from django.db.models.functions import Lower, Trim
 
 from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
+
+#pruebas 
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 class MateriasView(APIView):
     permission_classes = [IsAuthenticated, IsAlumno]
@@ -605,3 +610,21 @@ def buscar_alumno_por_dni_o_nombre(dni, nombre, apellido):
         for nombre in nombre_apellido:
             filtro &= (Q(nombre__icontains=nombre) | Q(apellido__icontains=nombre))
         return Alumno.objects.filter(filtro).first()
+    
+    
+# Obtener un alumno por su id
+class AlumnoDetailView(generics.RetrieveAPIView):
+    serializer_class = AlumnoSerializer
+
+    def get(self, request):
+        try:
+            # Obtener el perfil del alumno autenticado
+            alumno = Alumno.objects.get(user=request.user)
+            serializer = AlumnoSerializer(alumno)
+            return Response(serializer.data)
+        except Alumno.DoesNotExist:
+            # Si el alumno no existe, devolver un error personalizado
+            return Response(
+                {"error": "Alumno no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
