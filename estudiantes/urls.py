@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView
+from .views import AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView
 
 
 urlpatterns = [
@@ -41,5 +41,9 @@ urlpatterns = [
     #ALUMNOS
     #obtener un alumno por id
     path('alumno/perfil/', AlumnoDetailView.as_view(), name='alumno-detail'),
+    
+    #notificaciones
+    path('notificaciones/', PagoView.as_view(), name='pago'),
+    path('mensajes/', MensajesView.as_view(), name='mensajes-list'),
 
 ]

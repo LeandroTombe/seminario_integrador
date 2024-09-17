@@ -61,6 +61,7 @@ X_FRAME_OPTIONS = 'ALOWALL'
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -76,7 +77,19 @@ INSTALLED_APPS = [
     'cuentas',
     'estudiantes',
     'auditar',
+    'mensajeria',
+    'channels'
 ]
+
+
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+
 
 MIDDLEWARE = [
     'cuentas.middleware.CustomAuthMiddleware',
@@ -113,6 +126,8 @@ TEMPLATES = [
 
 
 WSGI_APPLICATION = 'tup.wsgi.application'
+ASGI_APPLICATION = 'tup.asgi.application'
+
 
 #configuracion del correo
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

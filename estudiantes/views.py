@@ -11,13 +11,18 @@ from unidecode import unidecode
 from cuentas.permissions import IsAlumno
 from rest_framework import status
 
-from .models import Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
-from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
+from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
+from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
 from datetime import datetime
+from django.utils import timezone
+
 
 from django.db import IntegrityError
 from django.db.models import Q,F
-from django.db.models.functions import Lower, Trim
+
+from .models import Notificacion
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
 
@@ -529,9 +534,39 @@ def tratamientoPago(id_alumno, monto,medio_pago):
         forma_pago=medio_pago,
         comprobante_de_pago=None,
     )
-    
-    #guardar el pago
+     # Guardar el pago en la base de datos
     pago.save()
+
+    # Obtener las cuotas del alumno que aún no han sido completamente pagadas
+    cuotas_pendientes = Cuota.objects.filter(alumno_id=id_alumno, importePagado__lt=F('total'))
+
+    # El monto restante es la cantidad del pago recibido
+    monto_restante = Decimal(monto)
+
+    for cuota in cuotas_pendientes:
+        # Calcular cuánto falta para pagar la cuota completamente
+        monto_a_pagar = cuota.total - cuota.importePagado
+
+        if monto_restante <= 0:
+            break  # No queda más dinero para pagar
+
+        # Si el monto restante es mayor o igual a lo que falta en la cuota
+        if monto_restante >= monto_a_pagar:
+            # Pagar la cuota completamente
+            cuota.importePagado += monto_a_pagar
+            monto_pagado = monto_a_pagar
+        else:
+            # Pagar solo parte de la cuota
+            cuota.importePagado += monto_restante
+            monto_pagado = monto_restante
+
+        # Crear el registro en la tabla intermedia PagoCuota
+        DetallePago.objects.create(
+            pago=pago,
+            cuota=cuota,
+        )
+        # Restar el monto pagado de la cantidad restante
+        monto_restante -= monto_pagado
     
 def tratamientoCoutaDistintoCero(id_alumno, monto, medio_pago):
     cuota = Cuota.objects.get(alumno_id=id_alumno, nroCuota=cuota)
@@ -546,7 +581,8 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago):
     cuotas_pendientes = Cuota.objects.filter(
         total__gt=F('importePagado'), alumno_id=id_alumno  # total mayor que el importe pagado
     ).order_by('fechaPrimerVencimiento')
-
+    monto_original=monto
+    tratamientoPago(id_alumno, monto_original, medio_pago)
     # Itera sobre las cuotas mientras haya monto por pagar
     while monto > 0 and cuotas_pendientes.exists():
         # Obtén la cuota más reciente
@@ -574,7 +610,7 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago):
         ).order_by('fechaPrimerVencimiento')
         
         # Realiza el tratamiento del pago (si es necesario)
-        tratamientoPago(id_alumno, monto, medio_pago)
+    
                             
                             
 
@@ -628,3 +664,38 @@ class AlumnoDetailView(generics.RetrieveAPIView):
                 {"error": "Alumno no encontrado"},
                 status=status.HTTP_404_NOT_FOUND
             )
+            
+class PagoView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        alumno = Alumno.objects.get(user=request.user)
+
+        # Crear una notificación
+        notificacion = Notificacion.objects.create(
+            alumno=alumno,
+            mensaje=f'Se ha pagado correctamente la cuota...',
+            fecha=timezone.now()
+        )
+
+        # Enviar notificación a través de WebSocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'notificaciones_{alumno.id}',  # Asegúrate de que cada alumno tenga un grupo único
+            {
+                'type': 'send_notification',
+                'message': {
+                    'mensaje': notificacion.mensaje,
+                    'fecha': notificacion.fecha.strftime('%Y-%m-%d %H:%M:%S')
+                }
+            }
+        )
+
+        return Response({'status': 'Pago procesado y notificación enviada'})
+    
+    
+class MensajesView(APIView):
+    def get(self, request):
+        # Obtener todos los mensajes o filtrar según el usuario autenticado
+        mensajes = Notificacion.objects.all()  # O usa un filtro por usuario
+        serializer = NotificacionSerializer(mensajes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

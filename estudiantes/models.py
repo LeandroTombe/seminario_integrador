@@ -36,6 +36,7 @@ class Cuota(models.Model):
     fechaSegundoVencimiento = models.DateField()
     total = models.DecimalField(max_digits=10, decimal_places=2)
     importePagado = models.DecimalField(max_digits=10, decimal_places=2)
+    pagos = models.ManyToManyField('Pago', through='DetallePago')
 
     def aplicar_moras(self, compromiso):
         hoy = datetime.now().date()
@@ -131,6 +132,8 @@ class Pago(models.Model):
     fecha_pago_confirmado = models.DateField(null=True, blank=True)
     comprobante_de_pago = models.FileField(upload_to='comprobantes/', null=True, blank=True)
     forma_pago = models.CharField(max_length=20, choices=FORMA_PAGO_CHOICES, default=TRANSFERENCIA)
+    cuotas = models.ManyToManyField('Cuota', through='DetallePago')
+
 
     def __str__(self):
         return f'Pago {self.pk} - {self.alumno.nombre} {self.alumno.apellido}'
@@ -167,3 +170,23 @@ class Mensajes(models.Model):
     
 
 
+class Notificacion(models.Model):
+   
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE, related_name='notificaciones')
+    mensaje = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.tipo_mensaje} - {self.mensaje[:30]} - {self.alumno}"
+    
+    
+class DetallePago(models.Model):
+    pago = models.ForeignKey('Pago', on_delete=models.CASCADE)
+    cuota = models.ForeignKey('Cuota', on_delete=models.CASCADE)
+    
+
+    def __str__(self):
+        return f'Pago {self.pago.id} - Cuota {self.cuota.nroCuota}'
+
+    class Meta:
+        unique_together = ('pago', 'cuota')
