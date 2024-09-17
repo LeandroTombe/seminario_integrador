@@ -564,6 +564,7 @@ def tratamientoPago(id_alumno, monto,medio_pago):
         DetallePago.objects.create(
             pago=pago,
             cuota=cuota,
+            monto_cuota=monto_pagado
         )
         # Restar el monto pagado de la cantidad restante
         monto_restante -= monto_pagado

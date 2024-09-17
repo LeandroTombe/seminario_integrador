@@ -183,6 +183,7 @@ class Notificacion(models.Model):
 class DetallePago(models.Model):
     pago = models.ForeignKey('Pago', on_delete=models.CASCADE)
     cuota = models.ForeignKey('Cuota', on_delete=models.CASCADE)
+    monto_cuota = models.DecimalField(max_digits=10, decimal_places=2)
     
 
     def __str__(self):

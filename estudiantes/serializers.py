@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes
+from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes,DetallePago
 
 
 class MateriaSerializer(serializers.ModelSerializer):
@@ -41,11 +41,20 @@ class FirmaCompromisoSerializer(serializers.ModelSerializer):
         read_only_fields = ['fecha_firma']
 
 
+class DetallePagoSerializer(serializers.ModelSerializer):
+    cuota = CuotaSerializer()
+
+    class Meta:
+        model = DetallePago
+        fields = ('id', 'cuota', 'monto_cuota')
+
 class PagoSerializer(serializers.ModelSerializer):
     alumno = AlumnoSerializer()
+    detalles = DetallePagoSerializer(source='detallepago_set', many=True, read_only=True)
+    
     class Meta:
         model = Pago
-        fields = ('id','alumno', 'monto_informado', 'fecha_pago_informado', 'monto_confirmado', 'fecha_pago_confirmado', 'comprobante_de_pago', 'forma_pago')
+        fields = ('id','alumno', 'monto_informado', 'fecha_pago_informado', 'monto_confirmado', 'fecha_pago_confirmado', 'comprobante_de_pago', 'forma_pago', 'detalles')
         
         
 class InhabilitationSerializer(serializers.ModelSerializer):
