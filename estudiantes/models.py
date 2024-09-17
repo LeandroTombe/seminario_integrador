@@ -167,3 +167,11 @@ class Mensajes(models.Model):
     
 
 
+class Notificacion(models.Model):
+   
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE, related_name='notificaciones')
+    mensaje = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.tipo_mensaje} - {self.mensaje[:30]} - {self.alumno}"

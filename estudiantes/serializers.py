@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-from .models import Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes
+from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes
 
 
 class MateriaSerializer(serializers.ModelSerializer):
@@ -65,3 +65,8 @@ class MensajesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mensajes
         fields = ('alumno', 'periodo', 'fechaFirma')
+        
+class NotificacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notificacion
+        fields = ['id', 'alumno', 'mensaje', 'fecha']

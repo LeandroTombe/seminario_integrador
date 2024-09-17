@@ -12,12 +12,17 @@ from cuentas.permissions import IsAlumno
 from rest_framework import status
 
 from .models import Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
-from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
+from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
 from datetime import datetime
+from django.utils import timezone
+
 
 from django.db import IntegrityError
 from django.db.models import Q,F
-from django.db.models.functions import Lower, Trim
+
+from .models import Notificacion
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
 
@@ -628,3 +633,38 @@ class AlumnoDetailView(generics.RetrieveAPIView):
                 {"error": "Alumno no encontrado"},
                 status=status.HTTP_404_NOT_FOUND
             )
+            
+class PagoView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        alumno = Alumno.objects.get(user=request.user)
+
+        # Crear una notificación
+        notificacion = Notificacion.objects.create(
+            alumno=alumno,
+            mensaje=f'Se ha pagado correctamente la cuota...',
+            fecha=timezone.now()
+        )
+
+        # Enviar notificación a través de WebSocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'notificaciones_{alumno.id}',  # Asegúrate de que cada alumno tenga un grupo único
+            {
+                'type': 'send_notification',
+                'message': {
+                    'mensaje': notificacion.mensaje,
+                    'fecha': notificacion.fecha.strftime('%Y-%m-%d %H:%M:%S')
+                }
+            }
+        )
+
+        return Response({'status': 'Pago procesado y notificación enviada'})
+    
+    
+class MensajesView(APIView):
+    def get(self, request):
+        # Obtener todos los mensajes o filtrar según el usuario autenticado
+        mensajes = Notificacion.objects.all()  # O usa un filtro por usuario
+        serializer = NotificacionSerializer(mensajes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
