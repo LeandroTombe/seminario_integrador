@@ -582,6 +582,7 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago):
         total__gt=F('importePagado'), alumno_id=id_alumno  # total mayor que el importe pagado
     ).order_by('fechaPrimerVencimiento')
     monto_original=monto
+    tratamientoPago(id_alumno, monto_original, medio_pago)
     # Itera sobre las cuotas mientras haya monto por pagar
     while monto > 0 and cuotas_pendientes.exists():
         # Obtén la cuota más reciente
@@ -609,7 +610,7 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago):
         ).order_by('fechaPrimerVencimiento')
         
         # Realiza el tratamiento del pago (si es necesario)
-    tratamientoPago(id_alumno, monto_original, medio_pago)
+    
                             
                             
 
