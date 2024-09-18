@@ -381,6 +381,46 @@ class ObtenerMateriasPorCodigoView(APIView):
         # 3. Serializar y devolver los nombres de las materias
         serializer = MateriaSerializer(materias, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ObtenerPagoPorAlumnosView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        try:
+            alumno = Alumno.objects.get(user=user)
+            pagos = Pago.objects.filter(alumno=alumno)
+            serializer = PagoSerializer(pagos, many=True)
+            return Response(
+            serializer.data
+            , status=status.HTTP_200_OK)
+        
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except Pago.DoesNotExist:
+            return Response({"error": "El pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request):
+
+        alumno_id = request.data.get('alumno')
+
+        if alumno_id is None:
+            return Response({"error": "El ID del alumno no ha sido proporcionado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            alumno = Alumno.objects.get(id=alumno_id)  # Busca el alumno con el ID proporcionado
+            pagos = Pago.objects.filter(alumno=alumno)
+            serializer = PagoSerializer(pagos, many=True)
+
+            return Response(
+            serializer.data
+            , status=status.HTTP_200_OK)
+
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except Pago.DoesNotExist:
+            return Response({"error": "El pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
         
 #Importacion de las cuotas asociadas a los alumnos
 
@@ -499,6 +539,7 @@ class ImportarCuotaPIView(APIView):
                         correctas.append({
                             "nombre": nombre,
                             "apellido": apellido,
+                            "numero_recibo": numeroRecibo,
                             "monto": monto,
                             "medio_pago": medio_pago,
                         })
@@ -589,6 +630,7 @@ def tratamientoPago(id_alumno, monto,medio_pago,numeroRecibo):
         DetallePago.objects.create(
             pago=pago,
             cuota=cuota,
+            monto_cuota=monto_pagado
         )
         # Restar el monto pagado de la cantidad restante
         monto_restante -= monto_pagado

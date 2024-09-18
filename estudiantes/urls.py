@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView
+from .views import AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView
 
 
 urlpatterns = [
@@ -18,6 +18,7 @@ urlpatterns = [
     path('pagos/all/', AllPagoListView.as_view(), name='all-movies-list'),  
     path('pagos/delete/<int:pk>/', PagoDeleteView.as_view(), name='movie-delete'), 
     path('pagos/update/<int:pk>/', PagoUpdateView.as_view(), name='movie-update'),
+    path('pagos/porAlumno/', ObtenerPagoPorAlumnosView.as_view(), name='pagos-por-alumno'),
 
     #Compromiso
     path('parametrosCompromiso/', ParametrosCompromisoSetValores.as_view(), name='set-valores-compromiso'),
