@@ -381,6 +381,46 @@ class ObtenerMateriasPorCodigoView(APIView):
         # 3. Serializar y devolver los nombres de las materias
         serializer = MateriaSerializer(materias, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ObtenerPagoPorAlumnosView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        try:
+            alumno = Alumno.objects.get(user=user)
+            pagos = Pago.objects.filter(alumno=alumno)
+            serializer = PagoSerializer(pagos, many=True)
+            return Response(
+            serializer.data
+            , status=status.HTTP_200_OK)
+        
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except Pago.DoesNotExist:
+            return Response({"error": "El pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request):
+
+        alumno_id = request.data.get('alumno')
+
+        if alumno_id is None:
+            return Response({"error": "El ID del alumno no ha sido proporcionado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            alumno = Alumno.objects.get(id=alumno_id)  # Busca el alumno con el ID proporcionado
+            pagos = Pago.objects.filter(alumno=alumno)
+            serializer = PagoSerializer(pagos, many=True)
+
+            return Response(
+            serializer.data
+            , status=status.HTTP_200_OK)
+
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except Pago.DoesNotExist:
+            return Response({"error": "El pago no existe."}, status=status.HTTP_400_BAD_REQUEST)
         
 #Importacion de las cuotas asociadas a los alumnos
 
