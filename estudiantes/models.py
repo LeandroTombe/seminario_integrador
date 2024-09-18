@@ -126,6 +126,7 @@ class Pago(models.Model):
     ]
 
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE, related_name='pagos')
+    numero_recibo = models.IntegerField()
     monto_informado = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_pago_informado = models.DateField()
     monto_confirmado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

@@ -485,6 +485,18 @@ class ImportarCuotaPIView(APIView):
                         "error": f"fila {index}: no tiene suficientes columnas con datos para procesar(falta legajo, nombre y apellido), por lo que se ha ignorado."
                     })
                     continue
+                
+                #verificar que el numero de recibo sea un numero
+                try:
+                    numero = int(row['nro_recibo'])
+                except ValueError:
+                    errores.append({
+                        "error": f"fila {index}: El número de recibo no es un número válido."
+                    })
+                    continue
+                if buscarReciboRepetido(numero,errores,index) == True:
+                    continue
+                
                 data = row.to_dict()
                 medio_pago = data.get('nombre_medio_de_pago')
                 #en este caso debo preguntar si el nombre y apellido vienen juntos, y si es asi, tomarlo. como condicion
@@ -510,6 +522,9 @@ class ImportarCuotaPIView(APIView):
                 #necesito saber como viene la fecha, y como es el formato
                 fecha_pago = data.get('fecha_dga')
                 
+                numeroRecibo = data.get('nro_recibo')
+                
+                
                 #tratamiendo del pago
                 
                 medio_pago= tratamientoMedioPago(medio_pago)
@@ -518,7 +533,7 @@ class ImportarCuotaPIView(APIView):
                                 
                 #el tratamiento de los alumnos y los pagos mas complejo
                 try:
-                    correcto= tramientoAlumno(nombre, apellido, dni, monto, medio_pago,errores,index)
+                    correcto= tramientoAlumno(nombre, apellido, dni, monto, medio_pago,errores,index,numeroRecibo)
                     print(correcto)
                     if correcto=="correcto":
                         correctas.append({
@@ -542,8 +557,17 @@ class ImportarCuotaPIView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        
-def tramientoAlumno(nombre, apellido, dni, monto, medio_pago, errores,index):
+
+def buscarReciboRepetido(numeroRecibo,errores,index):
+    if Pago.objects.filter(numero_recibo=numeroRecibo).exists():
+        errores.append({
+            "error": f"fila {index}: El número de recibo {numeroRecibo} ya ha sido registrado."
+        })
+        return True
+    return False
+
+  
+def tramientoAlumno(nombre, apellido, dni, monto, medio_pago, errores,index,numeroRecibo):
     try:
         alumno = buscar_alumno_por_dni_o_nombre(dni, nombre, apellido)
         if not alumno:
@@ -552,7 +576,7 @@ def tramientoAlumno(nombre, apellido, dni, monto, medio_pago, errores,index):
                 "error": f"fila {index}: El alumno con DNI {dni} o nombre {nombre} {apellido} no existe."
             })
             
-        tratamientoCoutaCero(alumno.id, monto, medio_pago)
+        tratamientoCoutaCero(alumno.id, monto, medio_pago,numeroRecibo)
         return "correcto"
     except Exception as e:
         return str(e)
@@ -560,7 +584,7 @@ def tramientoAlumno(nombre, apellido, dni, monto, medio_pago, errores,index):
 
 
 
-def tratamientoPago(id_alumno, monto,medio_pago):
+def tratamientoPago(id_alumno, monto,medio_pago,numeroRecibo):
     # crear un pago
     
     # TENER CUIDADO CON LA FECHA PORQUE ES LA DEL PAGO QUE SE CONFIRMO EN SYSADMIN, PARA LA PRUEBA HARÉ UNA FECHA DE HOY porque no me queda en claro como recibe la fecha
@@ -569,6 +593,7 @@ def tratamientoPago(id_alumno, monto,medio_pago):
         alumno_id=id_alumno,
         monto_informado=0,
         monto_confirmado=monto,
+        numero_recibo=numeroRecibo,
         fecha_pago_informado=datetime.now(),
         fecha_pago_confirmado=datetime.now(),
         forma_pago=medio_pago,
@@ -617,13 +642,13 @@ def tratamientoCoutaDistintoCero(id_alumno, monto, medio_pago):
     
     
     
-def tratamientoCoutaCero(id_alumno, monto, medio_pago):
+def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
    # Filtra las cuotas pendientes para el alumno
     cuotas_pendientes = Cuota.objects.filter(
         total__gt=F('importePagado'), alumno_id=id_alumno  # total mayor que el importe pagado
     ).order_by('fechaPrimerVencimiento')
     monto_original=monto
-    tratamientoPago(id_alumno, monto_original, medio_pago)
+    tratamientoPago(id_alumno, monto_original, medio_pago,numeroRecibo)
     # Itera sobre las cuotas mientras haya monto por pagar
     while monto > 0 and cuotas_pendientes.exists():
         # Obtén la cuota más reciente
