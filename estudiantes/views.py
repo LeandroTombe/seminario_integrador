@@ -539,6 +539,7 @@ class ImportarCuotaPIView(APIView):
                         correctas.append({
                             "nombre": nombre,
                             "apellido": apellido,
+                            "numero_recibo": numeroRecibo,
                             "monto": monto,
                             "medio_pago": medio_pago,
                         })

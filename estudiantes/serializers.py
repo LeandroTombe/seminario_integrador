@@ -54,7 +54,7 @@ class PagoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Pago
-        fields = ('id','alumno', 'monto_informado', 'fecha_pago_informado', 'monto_confirmado', 'fecha_pago_confirmado', 'comprobante_de_pago', 'forma_pago', 'detalles')
+        fields = ('id', 'numero_recibo', 'alumno', 'monto_informado', 'fecha_pago_informado', 'monto_confirmado', 'fecha_pago_confirmado', 'comprobante_de_pago', 'forma_pago', 'detalles')
         
         
 class InhabilitationSerializer(serializers.ModelSerializer):
