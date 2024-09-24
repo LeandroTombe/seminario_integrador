@@ -44,11 +44,7 @@ def alta_cuotas(alumno, compromiso):
 
 def saldo_vencido(alumno, compromiso):
     today = now().date()
-    
-    # Calcula el primer día del mes actual y el último día del mes actual
-    first_day_of_current_month = today.replace(day=1)
-    last_day_of_current_month = (first_day_of_current_month + timedelta(days=31)).replace(day=1) - timedelta(days=1)
-    
+
     # Obtener todas las cuotas para el alumno que no están completamente pagadas
     cuotas = Cuota.objects.filter(
         alumno=alumno,
@@ -57,19 +53,15 @@ def saldo_vencido(alumno, compromiso):
 
     # Aplicar moras a todas las cuotas
     for cuota in cuotas:
-        cuota.aplicar_moras(compromiso)  # Llama a aplicar_moras sin pasar el compromiso, si no es necesario
+        cuota.aplicar_moras(compromiso)
 
     saldo_vencido_total = 0
 
     for cuota in cuotas:
-        # Determina el primer y último día del mes de vencimiento de la cuota
-        first_day_of_due_month = cuota.fechaPrimerVencimiento.replace(day=1)
-        last_day_of_due_month = (first_day_of_due_month + timedelta(days=31)).replace(day=1) - timedelta(days=1)
-        
-        if cuota.fechaPrimerVencimiento <= last_day_of_due_month and cuota.fechaPrimerVencimiento < today:
-            if today > last_day_of_due_month:
-                # Si hoy es después del último día del mes de vencimiento y la cuota no está pagada, se suma al saldo vencido
-                saldo_vencido_total += (cuota.total) - cuota.importePagado
+        # Si la cuota está vencida (fechaPrimerVencimiento es anterior a hoy) y no está pagada completamente
+        if cuota.fechaPrimerVencimiento < today:
+            # Sumar el saldo vencido de esta cuota
+            saldo_vencido_total += (cuota.total - cuota.importePagado)
 
     return saldo_vencido_total
 
