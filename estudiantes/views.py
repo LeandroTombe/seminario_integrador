@@ -257,11 +257,20 @@ class FirmaCompromisoActualListView(APIView):
         # Obtener el último compromiso de pago
         compromiso = ParametrosCompromiso.objects.filter(año=datetime.now().year, cuatrimestre=cuatrimestre).last()
         
-        if not compromiso:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        
         # Aca hacer el control de que esten inscriptos este cuatrimestre!
         alumnos = Alumno.objects.all().order_by('apellido')
+
+        # Si no hay compromiso, se asume que nadie ha firmado y se envía `firmo_compromiso: false`
+        if not compromiso:
+            alumnos_con_firma = [
+                {
+                    'alumno': AlumnoSerializer(alumno).data,
+                    'firmo_compromiso': False  # Nadie ha firmado si no hay compromiso
+                }
+                for alumno in alumnos
+            ]
+            return Response(alumnos_con_firma, status=status.HTTP_200_OK)
+
         
         # Obtener los firmantes del compromiso actual
         firmantes_ids = FirmaCompromiso.objects.filter(parametros_compromiso=compromiso).values_list('alumno_id', flat=True)
