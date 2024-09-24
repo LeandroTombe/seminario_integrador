@@ -1,3 +1,4 @@
+import calendar
 from decimal import Decimal
 from django.shortcuts import get_object_or_404, render
 
@@ -13,7 +14,7 @@ from cuentas.permissions import IsAlumno
 from rest_framework import status
 
 from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
-from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
+from .serializers import AlumnosCoutasNoPagadas, MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -832,3 +833,60 @@ class CambiarEstadoPagoAPIView(APIView):
         alumno.save()
 
         return Response({'message': 'El estado de pago ha sido actualizado correctamente'}, status=status.HTTP_200_OK)
+    
+    
+
+class AlumnosCompromisoFirmadoView(APIView):
+    def get(self, request):
+        # Obtener el compromiso del año actual
+        compromiso_actual = ParametrosCompromiso.objects.filter(año=datetime.now().year).last()
+
+        # Contar alumnos que no están al día y han firmado el compromiso actual
+        total_alumnos = Alumno.objects.filter(
+            pago_al_dia=False,
+            firmacompromiso__parametros_compromiso=compromiso_actual
+        ).count()
+
+        return Response( total_alumnos, status=status.HTTP_200_OK)
+    
+
+class AlumnosNoPagaron2View(APIView):
+    def get(self, request):
+        # Fecha de hoy
+        hoy = datetime.now()
+
+        # Fecha límite para tolerar el pago de la cuota del mes actual (día 10 del mes actual)
+        dia_tolerancia = 10
+        fecha_limite_mes_actual = hoy.replace(day=dia_tolerancia)
+
+        # Obtener alumnos que:
+        # 1. Deben cuotas de este mes (septiembre) pero todavía están dentro del periodo de tolerancia
+        # 2. O tienen cuotas vencidas de meses anteriores
+        # 3. O están inhabilitados (pago_al_dia=False)
+
+        # Alumnos que deben la cuota de este mes y aún están en el periodo de tolerancia
+        alumnos_que_deben_este_mes = Alumno.objects.filter(
+            cuota__fechaPrimerVencimiento__month=hoy.month,  # Cuotas de este mes
+            cuota__total__gt=F('cuota__importePagado'),  # Cuota no está completamente pagada
+            pago_al_dia=True  # Estaban al día antes de este mes
+        ).distinct()
+
+        # Alumnos que deben cuotas de meses anteriores (agosto o antes)
+        alumnos_con_cuotas_vencidas = Alumno.objects.filter(
+            cuota__fechaPrimerVencimiento__lt=hoy.replace(day=1),  # Cuotas antes del mes actual
+            pago_al_dia=False  # No están al día
+        ).distinct()
+
+        # Alumnos inhabilitados (pago_al_dia=False)
+        alumnos_inhabilitados = Alumno.objects.filter(
+            pago_al_dia=False  # Inhabilitados por no estar al día
+        ).distinct()
+
+        # Unir todos los conjuntos de alumnos
+        alumnos = alumnos_que_deben_este_mes | alumnos_con_cuotas_vencidas | alumnos_inhabilitados
+
+        # Serializar los alumnos
+        serializer = AlumnosCoutasNoPagadas(alumnos, many=True)
+
+        # Devolver la respuesta
+        return Response(serializer.data, status=status.HTTP_200_OK)

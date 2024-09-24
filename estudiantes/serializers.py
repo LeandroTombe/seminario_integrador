@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.db.models import F
+
 
 
 from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes,DetallePago
@@ -80,3 +82,40 @@ class NotificacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notificacion
         fields = ['id', 'alumno', 'mensaje', 'fecha']
+        
+        
+class AlumnosCoutasNoPagadas(serializers.ModelSerializer):
+    ultima_cuota_pagada = serializers.SerializerMethodField()
+    class Meta:
+        model = Alumno
+        fields = ['id','legajo', 'email','nombre', 'apellido', 'dni', 'pago_al_dia', 'ultima_cuota_pagada']
+
+    def get_ultima_cuota_pagada(self, obj):
+        # Obtener la última cuota pagada para el alumno
+        cuotas_pagadas = Cuota.objects.filter(alumno=obj, total=F('importePagado')).order_by('-fechaPrimerVencimiento')
+        
+        if cuotas_pagadas.exists():
+            ultima_cuota_pagada = cuotas_pagadas.first()
+            # Obtener el mes del primer vencimiento
+            mes_numero = ultima_cuota_pagada.fechaPrimerVencimiento.month
+            # Usar la función tratarFecha para convertir el número del mes en el nombre
+            return tratarFecha(mes_numero)
+        
+        return None
+
+def tratarFecha(mes):
+    meses = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre"
+    }
+    return meses.get(mes, "Desconocido")
