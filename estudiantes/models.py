@@ -19,6 +19,7 @@ class Alumno(models.Model):
     telefono = models.IntegerField( null=True, blank=True)
     dni = models.IntegerField(null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
+    pago_al_dia = models.BooleanField(default=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     materias = models.ManyToManyField(Materia, related_name='alumnos')
 

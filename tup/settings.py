@@ -46,10 +46,7 @@ ALLOWED_HOSTS = [
 ]
 
 
-# Configuración de CORS
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # URL frontend React
-]
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -80,6 +77,14 @@ INSTALLED_APPS = [
     'mensajeria',
     'channels'
 ]
+
+# Configuración de CORS
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173", # URL frontend React
+    "http://localhost"
+]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 

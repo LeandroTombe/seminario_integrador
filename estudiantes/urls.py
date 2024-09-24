@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView
+from .views import CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView
 
 
 urlpatterns = [
@@ -42,6 +42,10 @@ urlpatterns = [
     #ALUMNOS
     #obtener un alumno por id
     path('alumno/perfil/', AlumnoDetailView.as_view(), name='alumno-detail'),
+    path('alumno/habilitaciones',AlumnosNoPagaronView.as_view(), name='alumnos-no-pagaron'),
+    path('alumno/<int:id>/cambiar-estado-pago/', CambiarEstadoPagoAPIView.as_view(), name='cambiar_estado_pago'),
+
+
     
     #notificaciones
     path('notificaciones/', PagoView.as_view(), name='pago'),

@@ -7,13 +7,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import api_view
 from unidecode import unidecode
 from cuentas.permissions import IsAlumno
 from rest_framework import status
 
 from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
 from .serializers import MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 
 
@@ -676,7 +677,40 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
             total__gt=F('importePagado'), alumno_id=id_alumno
         ).order_by('fechaPrimerVencimiento')
         
-        # Realiza el tratamiento del pago (si es necesario)
+            # Verifica si el alumno está al día con la cuota del mes anterior
+        hoy = timezone.now().date()
+        diez_dias_margen = hoy - timedelta(days=10)
+
+            # Lógica para manejar el mes anterior (considerando el cambio de año)
+        if hoy.month == 1:
+            mes_anterior = 12
+            ano_anterior = hoy.year - 1
+        else:
+            mes_anterior = hoy.month - 1
+            ano_anterior = hoy.year
+
+        # Verifica si hay cuotas pendientes del mes anterior
+        cuota_mes_anterior = Cuota.objects.filter(
+            alumno_id=id_alumno,
+            fechaPrimerVencimiento__month=mes_anterior,
+            fechaPrimerVencimiento__year=ano_anterior,
+            total__gt=F('importePagado')  # Cuota no está completamente pagada
+        ).exists()
+
+        # Verifica si hay cuotas pendientes del mes en curso y dentro del margen de 10 días
+        cuota_mes_actual_vencida = Cuota.objects.filter(
+            alumno_id=id_alumno,
+            fechaPrimerVencimiento__lte=diez_dias_margen,  # Fecha de vencimiento pasó el margen
+            total__gt=F('importePagado')  # Cuota no está completamente pagada
+        ).exists()
+
+        # Actualiza el estado del alumno si no tiene cuotas pendientes del mes anterior
+        # y está dentro del margen de 10 días del mes actual
+        if not cuota_mes_anterior and not cuota_mes_actual_vencida:
+            alumno = Alumno.objects.get(id=id_alumno)
+            alumno.pago_al_dia = True
+            alumno.save()
+  
     
                             
                             
@@ -766,3 +800,35 @@ class MensajesView(APIView):
         mensajes = Notificacion.objects.all()  # O usa un filtro por usuario
         serializer = NotificacionSerializer(mensajes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+#Filtrar alumno que no pagaron, eso te hace preguntando si la fecha de vencimiento es menor al dia 10 del mes siguiente
+
+class AlumnosNoPagaronView(APIView):
+    def get(self, request):
+        # Obtener los alumnos que no pagaron y que la fecha de vencimiento sea menor al día 10 del mes siguiente y si pago al dia esta en false
+        
+        
+        
+        alumnos = Alumno.objects.filter(cuota__fechaPrimerVencimiento__lt=datetime.now().replace(day=10))
+        alumnos = alumnos.filter(pago_al_dia=True)
+        serializer = AlumnoSerializer(alumnos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class CambiarEstadoPagoAPIView(APIView):
+
+    def patch(self, request, id):
+        try:
+            alumno = Alumno.objects.get(id=id)
+        except Alumno.DoesNotExist:
+            return Response({'error': 'Alumno no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Actualizamos el estado de 'pago_al_dia'
+        pago_al_dia = request.data.get('pago_al_dia', None)
+        if pago_al_dia is None:
+            return Response({'error': 'El campo "pago_al_dia" es obligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+
+        alumno.pago_al_dia = pago_al_dia
+        alumno.save()
+
+        return Response({'message': 'El estado de pago ha sido actualizado correctamente'}, status=status.HTTP_200_OK)
