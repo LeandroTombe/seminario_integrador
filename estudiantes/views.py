@@ -73,7 +73,7 @@ class PagoDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PagoSerializer
     
 class AllPagoListView(generics.ListAPIView):
-    queryset = Pago.objects.all()
+    queryset = Pago.objects.all().order_by('-id')
     serializer_class = PagoSerializer
     
 class PagoUpdateView(generics.RetrieveUpdateAPIView):
@@ -401,7 +401,7 @@ class ObtenerPagoPorAlumnosView(APIView):
 
         try:
             alumno = Alumno.objects.get(user=user)
-            pagos = Pago.objects.filter(alumno=alumno)
+            pagos = Pago.objects.filter(alumno=alumno).order_by('-id')
             serializer = PagoSerializer(pagos, many=True)
             return Response(
             serializer.data
@@ -421,7 +421,7 @@ class ObtenerPagoPorAlumnosView(APIView):
 
         try:
             alumno = Alumno.objects.get(id=alumno_id)  # Busca el alumno con el ID proporcionado
-            pagos = Pago.objects.filter(alumno=alumno)
+            pagos = Pago.objects.filter(alumno=alumno).order_by('-id')
             serializer = PagoSerializer(pagos, many=True)
 
             return Response(
