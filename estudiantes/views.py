@@ -196,15 +196,15 @@ class FirmarCompromisoView(APIView):
             alumno = Alumno.objects.get(user=user)  # Busca el alumno relacionado con el usuario autenticado
             parametros_compromiso = ParametrosCompromiso.objects.get(año=año, cuatrimestre=cuatrimestre)
 
+            # Llamar a la función para dar de alta las cuotas después de firmar el compromiso
+            alta_cuotas(alumno, parametros_compromiso)
+
             # Crear y guardar la firma del compromiso
             firma_compromiso = FirmaCompromiso(
                 alumno=alumno,
                 parametros_compromiso=parametros_compromiso,
             )
             firma_compromiso.save()
-
-            # Llamar a la función para dar de alta las cuotas después de firmar el compromiso
-            alta_cuotas(alumno, parametros_compromiso)
 
             return Response({"message": "Compromiso firmado y cuotas creadas exitosamente"}, status=status.HTTP_201_CREATED)
 

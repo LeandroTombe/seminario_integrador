@@ -20,6 +20,25 @@ def alta_cuotas(alumno, compromiso):
     else:
         cuotas = range(8, 13)  # Cuotas 8, 9, 10, 11, 12
 
+    # Dar de alta la matricula
+    if not Cuota.objects.filter(alumno=alumno, año=compromiso.año, nroCuota=0).exists():
+        fecha_primer_vencimiento = datetime(compromiso.año, 8, 10)
+        fecha_segundo_vencimiento = datetime(compromiso.año, 8, 20)
+
+        cuota = Cuota(
+            alumno=alumno,
+            nroCuota=0,
+            año=compromiso.año,
+            importe=compromiso.importe_matricula,
+            moraPrimerVencimiento=0,  # Inicialmente no hay mora en el primer vencimiento
+            fechaPrimerVencimiento=fecha_primer_vencimiento,
+            moraSegundoVencimiento=0,  # Inicialmente no hay mora en el segundo vencimiento
+            fechaSegundoVencimiento=fecha_segundo_vencimiento,
+            total=compromiso.importe_matricula,  # Suponiendo que el total es igual al importe si no hay mora
+            importePagado=0,
+        )
+        cuota.save()
+
     for nro_cuota in cuotas:
         # Calcular las fechas de vencimiento como el día 10 y el día 20 del mes de la cuota
         mes_vencimiento = nro_cuota
