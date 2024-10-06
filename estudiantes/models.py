@@ -27,6 +27,12 @@ class Alumno(models.Model):
         return f'{self.nombre} {self.apellido} {self.dni}'
 
 class Cuota(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('pagada', 'Pagada'),
+        ('informada', 'Informada'),
+        ('vencida', 'Vencida')
+    ]
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
     nroCuota = models.IntegerField()
     año = models.IntegerField()
@@ -37,6 +43,9 @@ class Cuota(models.Model):
     fechaSegundoVencimiento = models.DateField()
     total = models.DecimalField(max_digits=10, decimal_places=2)
     importePagado = models.DecimalField(max_digits=10, decimal_places=2)
+    importeInformado = models.DecimalField(max_digits=10, decimal_places=2)
+    fechaImporteInformado = models.DateField()
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES,default='Pendiente')
     pagos = models.ManyToManyField('Pago', through='DetallePago')
 
     def aplicar_moras(self, compromiso):
@@ -48,6 +57,8 @@ class Cuota(models.Model):
             completo = False
 
         if hoy > self.fechaSegundoVencimiento:
+            if self.estado == 'Pendiente':
+                self.estado = 'Vencida'
             if completo:
                 self.moraPrimerVencimiento = compromiso.importe_pri_venc_comp
                 self.moraSegundoVencimiento = compromiso.importe_seg_venc_comp
@@ -59,6 +70,8 @@ class Cuota(models.Model):
                 self.total += self.moraPrimerVencimiento + self.moraSegundoVencimiento
 
         elif hoy > self.fechaPrimerVencimiento:
+            if self.estado == 'Pendiente':
+                self.estado = 'Vencida'
             if completo:
                 self.moraPrimerVencimiento = compromiso.importe_pri_venc_comp
             else:
@@ -128,8 +141,6 @@ class Pago(models.Model):
 
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE, related_name='pagos')
     numero_recibo = models.IntegerField()
-    monto_informado = models.DecimalField(max_digits=10, decimal_places=2)
-    fecha_pago_informado = models.DateField()
     monto_confirmado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     fecha_pago_confirmado = models.DateField(null=True, blank=True)
     comprobante_de_pago = models.FileField(upload_to='comprobantes/', null=True, blank=True)
