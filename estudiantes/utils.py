@@ -36,6 +36,8 @@ def alta_cuotas(alumno, compromiso):
             fechaSegundoVencimiento=fecha_segundo_vencimiento,
             total=compromiso.importe_matricula,  # Suponiendo que el total es igual al importe si no hay mora
             importePagado=0,
+            importeInformado=0,
+            fechaImporteInformado=fecha_primer_vencimiento,
         )
         cuota.save()
 
@@ -58,6 +60,8 @@ def alta_cuotas(alumno, compromiso):
             fechaSegundoVencimiento=fecha_segundo_vencimiento,
             total=importe,  # Suponiendo que el total es igual al importe si no hay mora
             importePagado=0,
+            importeInformado=0,
+            fechaImporteInformado=fecha_primer_vencimiento,
         )
         cuota.save()
 

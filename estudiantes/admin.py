@@ -13,8 +13,8 @@ class AlumnoAdmin(admin.ModelAdmin):
 
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):
-    list_display = ('alumno', 'monto_informado', 'fecha_pago_informado', 'monto_confirmado', 'fecha_pago_confirmado', 'forma_pago')
-    list_filter = ('forma_pago', 'fecha_pago_informado', 'fecha_pago_confirmado')
+    list_display = ('alumno', 'monto_confirmado', 'fecha_pago_confirmado', 'forma_pago')
+    list_filter = ('forma_pago', 'fecha_pago_confirmado')
     search_fields = ('alumno__nombre', 'alumno__apellido')
 
 @admin.register(ParametrosCompromiso)

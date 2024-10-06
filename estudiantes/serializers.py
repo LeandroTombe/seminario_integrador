@@ -14,7 +14,7 @@ class MateriaSerializer(serializers.ModelSerializer):
 class CuotaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cuota
-        fields = ('nroCuota', 'año', 'importe', 'moraPrimerVencimiento', 'fechaPrimerVencimiento', 'moraSegundoVencimiento', 'fechaSegundoVencimiento', 'total', 'importePagado')
+        fields = ('nroCuota', 'año', 'importe', 'moraPrimerVencimiento', 'fechaPrimerVencimiento', 'moraSegundoVencimiento', 'fechaSegundoVencimiento', 'total', 'importePagado', 'importeInformado', 'fechaImporteInformado', 'estado')
 
 class AlumnoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -56,7 +56,7 @@ class PagoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Pago
-        fields = ('id', 'numero_recibo', 'alumno', 'monto_informado', 'fecha_pago_informado', 'monto_confirmado', 'fecha_pago_confirmado', 'comprobante_de_pago', 'forma_pago', 'detalles')
+        fields = ('id', 'numero_recibo', 'alumno', 'monto_confirmado', 'fecha_pago_confirmado', 'comprobante_de_pago', 'forma_pago', 'detalles')
         
         
 class InhabilitationSerializer(serializers.ModelSerializer):

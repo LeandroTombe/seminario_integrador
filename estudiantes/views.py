@@ -17,6 +17,7 @@ from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosComp
 from .serializers import AlumnosCoutasNoPagadas, MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.utils.timezone import now
 
 
 from django.db import IntegrityError
@@ -603,10 +604,8 @@ def tratamientoPago(id_alumno, monto,medio_pago,numeroRecibo):
     #que diferencia hay entre monto_informado y monto_confirmado?
     pago = Pago(
         alumno_id=id_alumno,
-        monto_informado=0,
         monto_confirmado=monto,
         numero_recibo=numeroRecibo,
-        fecha_pago_informado=datetime.now(),
         fecha_pago_confirmado=datetime.now(),
         forma_pago=medio_pago,
         comprobante_de_pago=None,
@@ -674,10 +673,18 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
             # Si el monto es mayor o igual al importe pendiente
             monto -= importe_pendiente
             cuota_mas_reciente.importePagado = cuota_mas_reciente.total
+            cuota_mas_reciente.importeInformado = 0
+            cuota_mas_reciente.estado = 'Pagada'
         else:
             # Si el monto es menor que el importe pendiente
             cuota_mas_reciente.importePagado += monto
             monto = 0  # El monto se ha agotado
+
+            if cuota_mas_reciente.fechaPrimerVencimiento < now().date():
+                cuota_mas_reciente.estado = "Vencida"
+            else:
+                cuota_mas_reciente.estado = "Pendiente"
+            cuota_mas_reciente.importeInformado = 0
 
         # Guarda la cuota actualizada
         cuota_mas_reciente.save()
@@ -899,3 +906,84 @@ class AlumnosNoPagaron2View(APIView):
 
         # Devolver la respuesta
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class InformarPagoCuotas(APIView):
+    permission_classes = [IsAuthenticated] # IsAlumno
+
+    def post(self, request):
+        user = request.user  # Obtén el usuario autenticado
+
+        try:
+            alumno = Alumno.objects.get(user=user)
+            
+            # Obtén las cuotas seleccionadas desde el cuerpo de la solicitud
+            cuotas_seleccionadas = request.data.get('cuotasSeleccionadas', [])
+
+            # Filtra las cuotas por el alumno y el año actual
+            queryset = Cuota.objects.filter(alumno=alumno, año=datetime.now().year, nroCuota__in=cuotas_seleccionadas)
+            
+            monto_restante = Decimal(request.data.get("montoAPagar"))
+            for cuota in queryset:
+                # Calcular cuánto falta para pagar la cuota completamente
+                monto_a_pagar = cuota.total - cuota.importeInformado
+
+                if monto_restante <= 0:
+                    break  # No queda más dinero para informar
+
+                # Si el monto restante es mayor o igual a lo que falta en la cuota
+                if monto_restante >= monto_a_pagar:
+                    # Informar la cuota completamente
+                    cuota.importeInformado += monto_a_pagar
+                    monto_pagado = monto_a_pagar
+                else:
+                    # Pagar solo parte de la cuota
+                    cuota.importeInformado += monto_restante
+                    monto_pagado = monto_restante
+
+                cuota.estado = 'Informada'
+                cuota.save()
+                # Restar el monto pagado de la cantidad restante
+                monto_restante -= monto_pagado
+            
+            serializer = CuotaSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Alumno.DoesNotExist:
+            return Response({"error": "El alumno no existe."}, status=status.HTTP_400_BAD_REQUEST)
+        except Cuota.DoesNotExist:
+            return Response({"error": "La cuota no existe.."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+"""
+    # El monto restante es la cantidad del pago recibido
+    monto_restante = Decimal(monto)
+
+
+    for cuota in cuotas_pendientes:
+        # Calcular cuánto falta para pagar la cuota completamente
+        monto_a_pagar = cuota.total - cuota.importePagado
+
+        if monto_restante <= 0:
+            break  # No queda más dinero para pagar
+
+        # Si el monto restante es mayor o igual a lo que falta en la cuota
+        if monto_restante >= monto_a_pagar:
+            # Pagar la cuota completamente
+            cuota.importePagado += monto_a_pagar
+            monto_pagado = monto_a_pagar
+            cuota.estado = 'Pagada'
+            cuota.save()
+        else:
+            # Pagar solo parte de la cuota
+            cuota.importePagado += monto_restante
+            monto_pagado = monto_restante
+
+        # Crear el registro en la tabla intermedia PagoCuota
+        DetallePago.objects.create(
+            pago=pago,
+            cuota=cuota,
+            monto_cuota=monto_pagado
+        )
+        # Restar el monto pagado de la cantidad restante
+        monto_restante -= monto_pagado
+"""
