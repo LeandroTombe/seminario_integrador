@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.db.models import F
+from datetime import datetime
 
 
 
@@ -84,11 +85,22 @@ class NotificacionSerializer(serializers.ModelSerializer):
         fields = ['id', 'alumno', 'mensaje', 'fecha']
         
         
+from rest_framework import serializers
+from django.db.models import F
+from .models import Alumno, Cuota
+
+class CuotaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cuota
+        fields = ['id', 'importe', 'importePagado', 'fechaPrimerVencimiento']
+
 class AlumnosCoutasNoPagadas(serializers.ModelSerializer):
     ultima_cuota_pagada = serializers.SerializerMethodField()
+    cuotas_vencidas = serializers.SerializerMethodField()  # Campo para cuotas vencidas
+
     class Meta:
         model = Alumno
-        fields = ['id','legajo', 'email','nombre', 'apellido', 'dni', 'pago_al_dia', 'ultima_cuota_pagada']
+        fields = ['id', 'legajo', 'email', 'nombre', 'apellido', 'dni', 'pago_al_dia', 'ultima_cuota_pagada', 'cuotas_vencidas']
 
     def get_ultima_cuota_pagada(self, obj):
         # Obtener la última cuota pagada para el alumno
@@ -102,6 +114,17 @@ class AlumnosCoutasNoPagadas(serializers.ModelSerializer):
             return tratarFecha(mes_numero)
         
         return None
+
+    def get_cuotas_vencidas(self, obj):
+        # Obtener las cuotas vencidas para el alumno
+        hoy = datetime.now()
+        cuotas_vencidas = Cuota.objects.filter(
+            alumno=obj,
+            total__gt=F('importePagado'),  # Cuota no completamente pagada
+            fechaPrimerVencimiento__lt=hoy  # Fecha de vencimiento en el pasado
+        )
+        # Serializar las cuotas usando el CuotaSerializer que devuelve el nombre del mes
+        return CuotaSerializer(cuotas_vencidas, many=True).data
 
 def tratarFecha(mes):
     meses = {

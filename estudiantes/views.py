@@ -29,6 +29,8 @@ from channels.layers import get_channel_layer
 
 from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
 
+from datetime import datetime
+
 #pruebas 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
@@ -868,45 +870,38 @@ class AlumnosCompromisoFirmadoView(APIView):
 
 class AlumnosNoPagaron2View(APIView):
     def get(self, request):
-        # Fecha de hoy
+        # Fecha actual
         hoy = datetime.now()
-
-        # Fecha límite para tolerar el pago de la cuota del mes actual (día 10 del mes actual)
         dia_tolerancia = 10
         fecha_limite_mes_actual = hoy.replace(day=dia_tolerancia)
 
-        # Obtener alumnos que:
-        # 1. Deben cuotas de este mes (septiembre) pero todavía están dentro del periodo de tolerancia
-        # 2. O tienen cuotas vencidas de meses anteriores
-        # 3. O están inhabilitados (pago_al_dia=False)
-
-        # Alumnos que deben la cuota de este mes y aún están en el periodo de tolerancia
+        # Alumnos que deben la cuota de este mes y aún están dentro del periodo de tolerancia
         alumnos_que_deben_este_mes = Alumno.objects.filter(
             cuota__fechaPrimerVencimiento__month=hoy.month,  # Cuotas de este mes
             cuota__total__gt=F('cuota__importePagado'),  # Cuota no está completamente pagada
             pago_al_dia=True  # Estaban al día antes de este mes
         ).distinct()
 
-        # Alumnos que deben cuotas de meses anteriores (agosto o antes)
+        # Alumnos que deben cuotas de meses anteriores
         alumnos_con_cuotas_vencidas = Alumno.objects.filter(
-            cuota__fechaPrimerVencimiento__lt=hoy.replace(day=1),  # Cuotas antes del mes actual
+            cuota__fechaPrimerVencimiento__lt=hoy.replace(day=1),  # Cuotas anteriores
             pago_al_dia=False  # No están al día
         ).distinct()
 
         # Alumnos inhabilitados (pago_al_dia=False)
         alumnos_inhabilitados = Alumno.objects.filter(
-            pago_al_dia=False  # Inhabilitados por no estar al día
+            pago_al_dia=False
         ).distinct()
 
         # Unir todos los conjuntos de alumnos
         alumnos = alumnos_que_deben_este_mes | alumnos_con_cuotas_vencidas | alumnos_inhabilitados
 
-        # Serializar los alumnos
+        # Serializar la lista de alumnos con sus cuotas vencidas
         serializer = AlumnosCoutasNoPagadas(alumnos, many=True)
 
-        # Devolver la respuesta
+        # Devolver la lista de alumnos con la información solicitada
         return Response(serializer.data, status=status.HTTP_200_OK)
-
+    
 class InformarPagoCuotas(APIView):
     permission_classes = [IsAuthenticated] # IsAlumno
 
@@ -953,6 +948,57 @@ class InformarPagoCuotas(APIView):
         except Cuota.DoesNotExist:
             return Response({"error": "La cuota no existe.."}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class AlumnosCuotasVencidas(APIView):
+    def get(self, request):
+        # Fecha actual
+        hoy = datetime.now()
+        dia_tolerancia = 10
+        fecha_limite_mes_actual = hoy.replace(day=dia_tolerancia)
+
+        # Obtener alumnos que:
+        # 1. Deben la cuota de este mes pero están dentro del periodo de tolerancia
+        # 2. O tienen cuotas vencidas de meses anteriores
+        # 3. O están inhabilitados (pago_al_dia=False)
+        
+        # Alumnos que deben la cuota de este mes y aún están dentro del periodo de tolerancia
+        alumnos_que_deben_este_mes = Alumno.objects.filter(
+            cuota__fechaPrimerVencimiento__month=hoy.month,  # Cuotas de este mes
+            cuota__total__gt=F('cuota__importePagado'),  # Cuota no está completamente pagada
+            pago_al_dia=True  # Estaban al día antes de este mes
+        ).distinct()
+
+        # Alumnos que deben cuotas de meses anteriores
+        alumnos_con_cuotas_vencidas = Alumno.objects.filter(
+            cuota__fechaPrimerVencimiento__lt=hoy.replace(day=1),  # Cuotas anteriores
+            pago_al_dia=False  # No están al día
+        ).distinct()
+
+        # Alumnos inhabilitados (pago_al_dia=False)
+        alumnos_inhabilitados = Alumno.objects.filter(
+            pago_al_dia=False
+        ).distinct()
+
+        # Unir todos los conjuntos de alumnos
+        alumnos = alumnos_que_deben_este_mes | alumnos_con_cuotas_vencidas | alumnos_inhabilitados
+
+        # Obtener la lista de cuotas vencidas por alumno
+        alumnos_con_cuotas = []
+        for alumno in alumnos:
+            cuotas_vencidas = alumno.cuota_set.filter(
+                total__gt=F('importePagado'),  # Cuotas no pagadas completamente
+                fechaPrimerVencimiento__lt=hoy  # Cuotas cuyo vencimiento fue en el pasado
+            ).values('id', 'importe', 'importePagado', 'fechaPrimerVencimiento')
+            
+            alumnos_con_cuotas.append({
+                'alumno_id': alumno.id,
+                'nombre': alumno.nombre,
+                'apellido': alumno.apellido,
+                'cuotas_vencidas': list(cuotas_vencidas)
+            })
+
+        # Devolver la lista de alumnos con cuotas vencidas
+        return Response(alumnos_con_cuotas, status=status.HTTP_200_OK)
 
 """
     # El monto restante es la cantidad del pago recibido

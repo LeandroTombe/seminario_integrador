@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas
+from .views import AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas
 
 
 urlpatterns = [
@@ -47,6 +47,7 @@ urlpatterns = [
     path('alumno/<int:id>/cambiar-estado-pago/', CambiarEstadoPagoAPIView.as_view(), name='cambiar_estado_pago'),
     path('alumno/ihhabilitados/', AlumnosCompromisoFirmadoView.as_view(), name='comprobar-firma'),
     path('alumno/ultimacuotapagada/', AlumnosNoPagaron2View.as_view(), name='comprobar-firma'),
+    path('alumno/coutasvencidas/', AlumnosCuotasVencidas.as_view(), name='comprobar-firma'),
 
 
     
