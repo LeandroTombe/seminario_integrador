@@ -190,7 +190,7 @@ class Notificacion(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.tipo_mensaje} - {self.mensaje[:30]} - {self.alumno}"
+        return f"{self.mensaje[:30]} - {self.alumno}"
     
     
 class DetallePago(models.Model):

@@ -675,7 +675,7 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
             # Si el monto es mayor o igual al importe pendiente
             monto -= importe_pendiente
             cuota_mas_reciente.importePagado = cuota_mas_reciente.total
-            cuota_mas_reciente.importeInformado = 0
+
             cuota_mas_reciente.estado = 'Pagada'
         else:
             # Si el monto es menor que el importe pendiente
@@ -686,7 +686,7 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
                 cuota_mas_reciente.estado = "Vencida"
             else:
                 cuota_mas_reciente.estado = "Pendiente"
-            cuota_mas_reciente.importeInformado = 0
+            # cuota_mas_reciente.importeInformado = 0   --> Aca se podria asignarle el importe pagado realmente
 
         # Guarda la cuota actualizada
         cuota_mas_reciente.save()
@@ -884,8 +884,8 @@ class AlumnosNoPagaron2View(APIView):
 
         # Alumnos que deben cuotas de meses anteriores
         alumnos_con_cuotas_vencidas = Alumno.objects.filter(
-            cuota__fechaPrimerVencimiento__lt=hoy.replace(day=1),  # Cuotas anteriores
-            pago_al_dia=False  # No están al día
+            cuota__estado="Vencida",  # Cuotas anteriores
+            # pago_al_dia=False  # No están al día
         ).distinct()
 
         # Alumnos inhabilitados (pago_al_dia=False)
@@ -894,7 +894,7 @@ class AlumnosNoPagaron2View(APIView):
         ).distinct()
 
         # Unir todos los conjuntos de alumnos
-        alumnos = alumnos_que_deben_este_mes | alumnos_con_cuotas_vencidas | alumnos_inhabilitados
+        alumnos = alumnos_con_cuotas_vencidas | alumnos_inhabilitados
 
         # Serializar la lista de alumnos con sus cuotas vencidas
         serializer = AlumnosCoutasNoPagadas(alumnos, many=True)
@@ -935,7 +935,6 @@ class InformarPagoCuotas(APIView):
                     cuota.importeInformado += monto_restante
                     monto_pagado = monto_restante
 
-                cuota.estado = 'Informada'
                 cuota.save()
                 # Restar el monto pagado de la cantidad restante
                 monto_restante -= monto_pagado
@@ -999,37 +998,3 @@ class AlumnosCuotasVencidas(APIView):
 
         # Devolver la lista de alumnos con cuotas vencidas
         return Response(alumnos_con_cuotas, status=status.HTTP_200_OK)
-
-"""
-    # El monto restante es la cantidad del pago recibido
-    monto_restante = Decimal(monto)
-
-
-    for cuota in cuotas_pendientes:
-        # Calcular cuánto falta para pagar la cuota completamente
-        monto_a_pagar = cuota.total - cuota.importePagado
-
-        if monto_restante <= 0:
-            break  # No queda más dinero para pagar
-
-        # Si el monto restante es mayor o igual a lo que falta en la cuota
-        if monto_restante >= monto_a_pagar:
-            # Pagar la cuota completamente
-            cuota.importePagado += monto_a_pagar
-            monto_pagado = monto_a_pagar
-            cuota.estado = 'Pagada'
-            cuota.save()
-        else:
-            # Pagar solo parte de la cuota
-            cuota.importePagado += monto_restante
-            monto_pagado = monto_restante
-
-        # Crear el registro en la tabla intermedia PagoCuota
-        DetallePago.objects.create(
-            pago=pago,
-            cuota=cuota,
-            monto_cuota=monto_pagado
-        )
-        # Restar el monto pagado de la cantidad restante
-        monto_restante -= monto_pagado
-"""

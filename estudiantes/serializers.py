@@ -84,12 +84,7 @@ class NotificacionSerializer(serializers.ModelSerializer):
         model = Notificacion
         fields = ['id', 'alumno', 'mensaje', 'fecha']
         
-        
-from rest_framework import serializers
-from django.db.models import F
-from .models import Alumno, Cuota
-
-class CuotaSerializer(serializers.ModelSerializer):
+class Cuota2Serializer(serializers.ModelSerializer):
     class Meta:
         model = Cuota
         fields = ['id', 'importe', 'importePagado', 'fechaPrimerVencimiento']
@@ -104,12 +99,11 @@ class AlumnosCoutasNoPagadas(serializers.ModelSerializer):
 
     def get_ultima_cuota_pagada(self, obj):
         # Obtener la última cuota pagada para el alumno
-        cuotas_pagadas = Cuota.objects.filter(alumno=obj, total=F('importePagado')).order_by('-fechaPrimerVencimiento')
-        
+        cuotas_pagadas = Cuota.objects.filter(alumno=obj, total=F('importePagado')).order_by('-nroCuota')
         if cuotas_pagadas.exists():
             ultima_cuota_pagada = cuotas_pagadas.first()
             # Obtener el mes del primer vencimiento
-            mes_numero = ultima_cuota_pagada.fechaPrimerVencimiento.month
+            mes_numero = ultima_cuota_pagada.nroCuota
             # Usar la función tratarFecha para convertir el número del mes en el nombre
             return tratarFecha(mes_numero)
         
@@ -123,11 +117,14 @@ class AlumnosCoutasNoPagadas(serializers.ModelSerializer):
             total__gt=F('importePagado'),  # Cuota no completamente pagada
             fechaPrimerVencimiento__lt=hoy  # Fecha de vencimiento en el pasado
         )
-        # Serializar las cuotas usando el CuotaSerializer que devuelve el nombre del mes
-        return CuotaSerializer(cuotas_vencidas, many=True).data
+        nombre_cuotas_vencidas = []
+        for cuota in cuotas_vencidas:
+            nombre_cuotas_vencidas.append(tratarFecha(cuota.nroCuota))
+        return nombre_cuotas_vencidas
 
 def tratarFecha(mes):
     meses = {
+        0: "Matricula",
         1: "Enero",
         2: "Febrero",
         3: "Marzo",

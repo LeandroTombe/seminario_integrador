@@ -45,7 +45,7 @@ urlpatterns = [
     path('alumno/perfil/', AlumnoDetailView.as_view(), name='alumno-detail'),
     path('alumno/habilitaciones',AlumnosNoPagaronView.as_view(), name='alumnos-no-pagaron'),
     path('alumno/<int:id>/cambiar-estado-pago/', CambiarEstadoPagoAPIView.as_view(), name='cambiar_estado_pago'),
-    path('alumno/ihhabilitados/', AlumnosCompromisoFirmadoView.as_view(), name='comprobar-firma'),
+    path('alumno/inhabilitados/', AlumnosCompromisoFirmadoView.as_view(), name='comprobar-firma'),
     path('alumno/ultimacuotapagada/', AlumnosNoPagaron2View.as_view(), name='comprobar-firma'),
     path('alumno/coutasvencidas/', AlumnosCuotasVencidas.as_view(), name='comprobar-firma'),
 
