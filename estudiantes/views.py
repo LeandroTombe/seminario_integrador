@@ -686,7 +686,8 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
                 cuota_mas_reciente.estado = "Vencida"
             else:
                 cuota_mas_reciente.estado = "Pendiente"
-            # cuota_mas_reciente.importeInformado = 0   --> Aca se podria asignarle el importe pagado realmente
+                
+        cuota_mas_reciente.importeInformado = cuota_mas_reciente.importePagado
 
         # Guarda la cuota actualizada
         cuota_mas_reciente.save()
