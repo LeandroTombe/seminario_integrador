@@ -69,10 +69,7 @@ def saldo_vencido(alumno, compromiso):
     today = now().date()
 
     # Obtener todas las cuotas para el alumno que no están completamente pagadas
-    cuotas = Cuota.objects.filter(
-        alumno=alumno,
-        total__gt=F('importePagado')
-    )
+    cuotas = Cuota.objects.filter(alumno=alumno).exclude(estado="pagada")
 
     # Aplicar moras a todas las cuotas
     for cuota in cuotas:

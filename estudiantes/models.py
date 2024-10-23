@@ -51,6 +51,9 @@ class Cuota(models.Model):
     def aplicar_moras(self, compromiso):
         hoy = datetime.now().date()
 
+        if self.estado == "Pagada":
+            return
+
         if self.alumno.materias.count() > 2:
             completo = True
         else:
@@ -66,7 +69,7 @@ class Cuota(models.Model):
                 self.moraPrimerVencimiento = compromiso.importe_pri_venc_red
                 self.moraSegundoVencimiento = compromiso.importe_seg_venc_red
 
-            if self.total != (self.importe + self.moraPrimerVencimiento + self.moraSegundoVencimiento):
+            if self.total <= (self.importe + self.moraPrimerVencimiento + self.moraSegundoVencimiento):
                 self.total += self.moraPrimerVencimiento + self.moraSegundoVencimiento
 
         elif hoy > self.fechaPrimerVencimiento:
