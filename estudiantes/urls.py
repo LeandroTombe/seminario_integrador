@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView
+from .views import AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView
 
 
 urlpatterns = [
@@ -52,7 +52,8 @@ urlpatterns = [
     #Tramites
     path('alumno/tramites/prorroga/', SolicitarProrrogaView.as_view(), name='solicitar-prorroga'),
     path('alumno/tramites/listado-prorroga-alumno/', ProrrogasPorAlumnoView.as_view(), name='prorrogas-por-alumno'),
-
+    path('listado-prorrogas/', ProrrogasListView.as_view(), name='listado-prorrogas'),
+    path('prorroga/<int:pk>/', ProrrogaUpdateView.as_view(), name='prorroga-update'),
     
     #notificaciones
     path('notificaciones/', PagoView.as_view(), name='pago'),
