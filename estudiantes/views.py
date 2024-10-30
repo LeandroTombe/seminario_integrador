@@ -54,7 +54,7 @@ class MateriaCreateView(generics.CreateAPIView):
 #listado de materias
 
 class MateriaListView(generics.ListAPIView):
-    queryset = Materia.objects.all()
+    queryset = Materia.objects.all().order_by('nombre')  # Ordena alfabéticamente por nombre
     serializer_class = MateriaSerializer
     permission_classes = [IsAuthenticated, IsAlumno]
 
@@ -1060,7 +1060,7 @@ class ProrrogasPorAlumnoView(APIView):
         print(user)
         try:
             alumno = Alumno.objects.get(user=user)
-            queryset = SolicitudProrroga.objects.filter(alumno=alumno)
+            queryset = SolicitudProrroga.objects.filter(alumno=alumno).order_by('-fecha_solicitud')
             serializer = SolicitudProrrogaSerializer(queryset, many=True)
             if queryset:
                 return Response(serializer.data)
