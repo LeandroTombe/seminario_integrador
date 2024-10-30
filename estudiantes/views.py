@@ -21,7 +21,7 @@ from django.utils.timezone import now
 
 
 from django.db import IntegrityError
-from django.db.models import Q,F
+from django.db.models import Q,F, Case, When, IntegerField
 
 from .models import Notificacion
 from asgiref.sync import async_to_sync
@@ -1072,3 +1072,43 @@ class ProrrogasPorAlumnoView(APIView):
                 {"error": "El alumno no existe."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        
+class ProrrogasListView(generics.ListAPIView):
+
+    serializer_class = SolicitudProrrogaSerializer
+    
+    def get_queryset(self):
+        queryset = SolicitudProrroga.objects.all()
+        queryset = queryset.annotate(
+            estado_orden=Case(
+                When(estado='Pendiente', then=0),
+                When(estado='Aprobada', then=1),
+                When(estado='Rechazada', then=2),
+                default=3,
+                output_field=IntegerField(),
+            )
+        ).order_by('estado_orden', 'fecha_solicitud')
+        return queryset
+
+class ProrrogaUpdateView(APIView):
+    permission_classes = [IsAuthenticated]  # Solo usuarios autenticados
+
+    def patch(self, request, pk):
+        # Obtener la prórroga específica usando el ID (pk)
+        prorroga = get_object_or_404(SolicitudProrroga, pk=pk)
+
+        # Extraer el nuevo estado del cuerpo del request
+        nuevo_estado = request.data.get('estado')
+        if nuevo_estado not in ['Aprobada', 'Rechazada']:
+            return Response(
+                {'detail': 'Estado no válido.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Actualizar el estado de la prórroga
+        prorroga.estado = nuevo_estado
+        prorroga.save()
+
+        # Serializar la prórroga actualizada para devolver en la respuesta
+        serializer = SolicitudProrrogaSerializer(prorroga)
+        return Response(serializer.data, status=status.HTTP_200_OK)
