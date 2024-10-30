@@ -207,3 +207,29 @@ class DetallePago(models.Model):
 
     class Meta:
         unique_together = ('pago', 'cuota')
+
+class SolicitudProrroga(models.Model):
+    PENDIENTE = 'Pendiente'
+    APROBADA = 'Aprobada'
+    RECHAZADA = 'Rechazada'
+    
+    ESTADO_CHOICES = [
+        (PENDIENTE, 'Pendiente'),
+        (APROBADA, 'Aprobada'),
+        (RECHAZADA, 'Rechazada'),
+    ]
+    
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
+    materia = models.ForeignKey(Materia, on_delete=models.CASCADE)
+    analitico = models.FileField(upload_to='prorroga/')
+    motivo = models.TextField(null=True, blank=True)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=PENDIENTE)
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['alumno', 'materia'], name='unique_prorroga_por_materia')
+        ]
+
+    def __str__(self):
+        return f'Solicitud de {self.alumno} para {self.materia} - {self.estado}'

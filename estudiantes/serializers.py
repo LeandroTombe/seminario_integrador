@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 
-from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes,DetallePago
+from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes,DetallePago,SolicitudProrroga
 
 
 class MateriaSerializer(serializers.ModelSerializer):
@@ -139,3 +139,12 @@ def tratarFecha(mes):
         12: "Diciembre"
     }
     return meses.get(mes, "Desconocido")
+
+class SolicitudProrrogaSerializer(serializers.ModelSerializer):
+    alumno = AlumnoSerializer()
+    materia = MateriaSerializer()
+    
+    class Meta:
+        model = SolicitudProrroga
+        fields = ['id', 'alumno', 'materia', 'analitico', 'motivo', 'estado', 'fecha_solicitud']
+        read_only_fields = ['estado', 'fecha_solicitud']

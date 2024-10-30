@@ -13,8 +13,8 @@ from unidecode import unidecode
 from cuentas.permissions import IsAlumno
 from rest_framework import status
 
-from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes
-from .serializers import AlumnosCoutasNoPagadas, MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer
+from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes, SolicitudProrroga
+from .serializers import AlumnosCoutasNoPagadas, MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer, SolicitudProrrogaSerializer
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.utils.timezone import now
@@ -999,3 +999,76 @@ class AlumnosCuotasVencidas(APIView):
 
         # Devolver la lista de alumnos con cuotas vencidas
         return Response(alumnos_con_cuotas, status=status.HTTP_200_OK)
+
+class SolicitarProrrogaView(APIView):
+    permission_classes = [IsAuthenticated]  # Solo usuarios autenticados
+
+    def post(self, request):
+        user = request.user  # Obtener el usuario autenticado
+        codigo_materia = request.data.get('materia')  # Obtener el ID de la materia desde el request
+        analitico = request.FILES.get('analitico')  # Obtener el archivo del analítico
+        motivo = request.data.get('motivo', '')  # Obtener el motivo (opcional)
+
+        try:
+            # Obtener el alumno asociado al usuario autenticado
+            alumno = Alumno.objects.get(user=user)
+            # Obtener la materia seleccionada
+            materia = Materia.objects.get(codigo_materia=codigo_materia)
+
+            # Verificar si ya existe una solicitud para la misma materia
+            if SolicitudProrroga.objects.filter(alumno=alumno, materia=materia).exists():
+                return Response(
+                    {"error": "Ya has solicitado una prórroga para esta materia."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Crear y guardar la solicitud de prórroga
+            solicitud = SolicitudProrroga(
+                alumno=alumno,
+                materia=materia,
+                analitico=analitico,
+                motivo=motivo,
+            )
+            solicitud.save()
+
+            return Response(
+                {"message": "Prórroga solicitada exitosamente."},
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Alumno.DoesNotExist:
+            return Response(
+                {"error": "El alumno no existe."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Materia.DoesNotExist:
+            return Response(
+                {"error": "La materia no existe."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except IntegrityError:
+            return Response(
+                {"error": "Error al procesar la solicitud."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+class ProrrogasPorAlumnoView(APIView):
+    permission_classes = [IsAuthenticated]  # Solo usuarios autenticados
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        print(user)
+        try:
+            alumno = Alumno.objects.get(user=user)
+            queryset = SolicitudProrroga.objects.filter(alumno=alumno)
+            serializer = SolicitudProrrogaSerializer(queryset, many=True)
+            if queryset:
+                return Response(serializer.data)
+            else:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        except Alumno.DoesNotExist:
+            return Response(
+                {"error": "El alumno no existe."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
