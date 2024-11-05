@@ -3,7 +3,7 @@ services:
     image: mysql:9.1.0
     env_file: .env.dev
     ports:
-      - "3306:3306"
+      - "${DB_PORT}:3306"
     environment:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}

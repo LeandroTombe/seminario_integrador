@@ -43,14 +43,14 @@ jobs:
 
       - name: Wait for MySQL to be ready
         run: |
-          for i in {1..30}; do
-            if mysqladmin ping -h "db" --silent; then
-              echo "MySQL is up!"
-              break
+            for i in {1..30}; do
+            if mysqladmin ping -h "db" -u "${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASSWORD }}" --silent; then
+                echo "MySQL is up!"
+                break
             fi
-            echo "Waiting for MySQL..."
-            sleep 5
-          done
+                echo "Waiting for MySQL... Attempt $i"
+                sleep 5
+            done
 
       - name: Build and push Docker image
         run: |
