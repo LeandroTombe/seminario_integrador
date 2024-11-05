@@ -13,14 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      db:
-        image: mysql:8.0  # Considera usar una versión estable más reciente
-        env:
-          MYSQL_DATABASE: ${{ secrets.DB_NAME }}
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        ports:
-          - 3307:3306
-        options: >-
+        db:
+          image: mysql:8.0
+          env:
+            MYSQL_DATABASE: ${{ secrets.DB_NAME }}
+            MYSQL_USER: ${{ secrets.DB_USER }}
+            MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
+            MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          ports:
+            - 3306:3306
+          options: >-
             --health-cmd="mysqladmin ping --silent"
             --health-interval=25s
             --health-timeout=5s
