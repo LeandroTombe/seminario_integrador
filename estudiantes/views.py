@@ -1016,11 +1016,20 @@ class SolicitarProrrogaView(APIView):
             materia = Materia.objects.get(codigo_materia=codigo_materia)
 
             # Verificar si ya existe una solicitud para la misma materia
-            if SolicitudProrroga.objects.filter(alumno=alumno, materia=materia).exists():
+            ultima_solicitud = SolicitudProrroga.objects.filter(alumno=alumno, materia=materia).order_by('-fecha_solicitud').first()
+            
+            # Verificar si ya existe una solicitud para la misma materia
+            if ultima_solicitud and ultima_solicitud.estado != 'Rechazada':
                 return Response(
-                    {"error": "Ya has solicitado una prórroga para esta materia."},
+                    {"error": "Ya tienes una prórroga aprobada o pendiente para esta materia."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+            #if SolicitudProrroga.objects.filter(alumno=alumno, materia=materia).exists():
+            #    return Response(
+            #        {"error": "Ya has solicitado una prórroga para esta materia."},
+            #        status=status.HTTP_400_BAD_REQUEST,
+            #    )
 
             # Crear y guardar la solicitud de prórroga
             solicitud = SolicitudProrroga(
@@ -1074,20 +1083,17 @@ class ProrrogasPorAlumnoView(APIView):
             )
         
 class ProrrogasListView(generics.ListAPIView):
-
     serializer_class = SolicitudProrrogaSerializer
-    
+
     def get_queryset(self):
         queryset = SolicitudProrroga.objects.all()
         queryset = queryset.annotate(
             estado_orden=Case(
                 When(estado='Pendiente', then=0),
-                When(estado='Aprobada', then=1),
-                When(estado='Rechazada', then=2),
-                default=3,
+                default=1,  # Para otros estados, establece un valor superior
                 output_field=IntegerField(),
             )
-        ).order_by('estado_orden', 'fecha_solicitud')
+        ).order_by('estado_orden', '-fecha_solicitud')
         return queryset
 
 class ProrrogaUpdateView(APIView):
@@ -1099,12 +1105,15 @@ class ProrrogaUpdateView(APIView):
 
         # Extraer el nuevo estado del cuerpo del request
         nuevo_estado = request.data.get('estado')
+        comentarios = request.data.get('comentarios')
         if nuevo_estado not in ['Aprobada', 'Rechazada']:
             return Response(
                 {'detail': 'Estado no válido.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
+        print("estos son los comentarios:", comentarios)
+        prorroga.comentarios = comentarios
+        prorroga.fecha_evaluacion = datetime.now()
         # Actualizar el estado de la prórroga
         prorroga.estado = nuevo_estado
         prorroga.save()

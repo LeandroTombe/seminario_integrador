@@ -225,11 +225,8 @@ class SolicitudProrroga(models.Model):
     motivo = models.TextField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=PENDIENTE)
     fecha_solicitud = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['alumno', 'materia'], name='unique_prorroga_por_materia')
-        ]
+    comentarios = models.TextField(null=True, blank=True)
+    fecha_evaluacion = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f'Solicitud de {self.alumno} para {self.materia} - {self.estado}'

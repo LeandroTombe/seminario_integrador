@@ -146,5 +146,5 @@ class SolicitudProrrogaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = SolicitudProrroga
-        fields = ['id', 'alumno', 'materia', 'analitico', 'motivo', 'estado', 'fecha_solicitud']
+        fields = ['id', 'alumno', 'materia', 'analitico', 'motivo', 'estado', 'fecha_solicitud', 'comentarios', 'fecha_evaluacion']
         read_only_fields = ['estado', 'fecha_solicitud']
