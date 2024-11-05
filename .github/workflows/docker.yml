@@ -13,20 +13,21 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-        db:
-          image: mysql:8.0
-          env:
-            MYSQL_DATABASE: ${{ secrets.DB_NAME }}
-            MYSQL_USER: ${{ secrets.DB_USER }}
-            MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
-            MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          ports:
-            - 3306:3306
-          options: >-
-            --health-cmd="mysqladmin ping --silent"
-            --health-interval=25s
-            --health-timeout=5s
-            --health-retries=3
+      db:
+        image: mysql:8.0
+        env:
+          MYSQL_HOST: ${{ secrets.DB_HOST }}
+          MYSQL_DATABASE: ${{ secrets.DB_NAME }}
+          MYSQL_USER: ${{ secrets.DB_USER }}
+          MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        ports:
+          - "3307:3307"
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=25s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
       - name: Check out code
@@ -38,22 +39,21 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Wait for MySQL to be ready
         run: |
-            for i in {1..30}; do
+          for i in {1..30}; do
             if mysqladmin ping -h "db" -u "${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASSWORD }}" --silent; then
-                echo "MySQL is up!"
-                break
+              echo "MySQL is up!"
+              break
             fi
-                echo "Waiting for MySQL... Attempt $i"
-                sleep 5
-            done
+            echo "Waiting for MySQL... Attempt $i"
+            sleep 5
+          done
 
       - name: Build and push Docker image
         run: |
-            docker build -t aloric/seminario:latest .
-            docker push aloric/seminario:latest
-
+          docker build -t aloric/seminario:latest .
+          docker push aloric/seminario:latest
