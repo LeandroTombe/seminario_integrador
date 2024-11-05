@@ -1112,3 +1112,6 @@ class ProrrogaUpdateView(APIView):
         # Serializar la prórroga actualizada para devolver en la respuesta
         serializer = SolicitudProrrogaSerializer(prorroga)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+#test
