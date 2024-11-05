@@ -45,9 +45,14 @@ jobs:
             docker build -t aloric/seminario:latest .
             docker push aloric/seminario:latest
 
-      - name: Build and run Docker containers
+      - name: Install docker-compose
         run: |
-            docker-compose -f docker-compose.yml up -d --build
+            sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+
+      - name: Run docker-compose
+        run: |
+            docker-compose -f docker-compose.yml up -d
 
       - name: Stop and remove containers
         run: |
