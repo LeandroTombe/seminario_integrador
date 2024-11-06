@@ -1111,7 +1111,7 @@ class ProrrogaUpdateView(APIView):
                 {'detail': 'Estado no válido.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        print("estos son los comentarios:", comentarios)
+        
         prorroga.comentarios = comentarios
         prorroga.fecha_evaluacion = datetime.now()
         # Actualizar el estado de la prórroga
@@ -1150,7 +1150,7 @@ class SolicitarBajaView(APIView):
             # Verificar si ya existe una solicitud para la misma materia
             if ultima_solicitud and ultima_solicitud.estado != 'Rechazada':
                 return Response(
-                    {"error": "Ya tienes una baja aprobada o pendiente para esta materia."},
+                    {"error": "Ya tienes una baja aprobada o pendiente para este cuatrimestre."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             
@@ -1233,12 +1233,18 @@ class BajaUpdateView(APIView):
                 {'detail': 'Estado no válido.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        print("estos son los comentarios:", comentarios)
+        
         baja.comentarios = comentarios
         baja.fecha_evaluacion = datetime.now()
         # Actualizar el estado de la baja
         baja.estado = nuevo_estado
         baja.save()
+
+        if baja.estado == "Aprobada":
+            cuotas = Cuota.objects.filter(alumno=baja.alumno, año=datetime.now().year, estado="Pendiente")
+
+            for cuota in cuotas:
+                cuota.delete()
 
         # Serializar la baja actualizada para devolver en la respuesta
         serializer = SolicitudBajaProvisoriaSerializer(baja)
