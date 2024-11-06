@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Materia, Alumno,Pago, ParametrosCompromiso, FirmaCompromiso, Cuota, DetallePago, SolicitudProrroga
+from .models import Materia, Alumno,Pago, ParametrosCompromiso, FirmaCompromiso, Cuota, DetallePago, SolicitudProrroga, SolicitudBajaProvisoria
 
 # Register your models here.
 
@@ -35,4 +35,8 @@ class DetallePagoAdmin(admin.ModelAdmin):
 
 @admin.register(SolicitudProrroga)
 class SolicitudProrrogaAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(SolicitudBajaProvisoria)
+class SolicitudBajaProvisoriaAdmin(admin.ModelAdmin):
     pass

@@ -112,13 +112,13 @@ class ParametrosCompromiso(models.Model):
     importe_seg_venc_comp = models.DecimalField(max_digits=10, decimal_places=2)
     importe_seg_venc_red = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def __str__(self):
+            return f'Año: {self.año} - Cuatrimestre: {self.cuatrimestre}'
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['año', 'cuatrimestre'], name='unique_año_cuatrimestre')
         ]
-
-    def str(self):
-        return f'{self.año} - {self.cuatrimestre}'
     
 from django.db import models
 
@@ -230,3 +230,25 @@ class SolicitudProrroga(models.Model):
 
     def __str__(self):
         return f'Solicitud de {self.alumno} para {self.materia} - {self.estado}'
+
+class SolicitudBajaProvisoria(models.Model):
+    PENDIENTE = 'Pendiente'
+    APROBADA = 'Aprobada'
+    RECHAZADA = 'Rechazada'
+    
+    ESTADO_CHOICES = [
+        (PENDIENTE, 'Pendiente'),
+        (APROBADA, 'Aprobada'),
+        (RECHAZADA, 'Rechazada'),
+    ]
+    
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
+    compromiso = models.ForeignKey(ParametrosCompromiso, on_delete=models.CASCADE)
+    motivo = models.TextField(null=True, blank=True)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=PENDIENTE)
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    comentarios = models.TextField(null=True, blank=True)
+    fecha_evaluacion = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'Solicitud de {self.alumno} para {self.compromiso} - {self.estado}'
