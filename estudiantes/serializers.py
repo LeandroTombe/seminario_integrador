@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 
-from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes,DetallePago,SolicitudProrroga
+from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes,DetallePago,SolicitudProrroga, SolicitudBajaProvisoria
 
 
 class MateriaSerializer(serializers.ModelSerializer):
@@ -146,5 +146,13 @@ class SolicitudProrrogaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = SolicitudProrroga
-        fields = ['id', 'alumno', 'materia', 'analitico', 'motivo', 'estado', 'fecha_solicitud']
+        fields = ['id', 'alumno', 'materia', 'analitico', 'motivo', 'estado', 'fecha_solicitud', 'comentarios', 'fecha_evaluacion']
         read_only_fields = ['estado', 'fecha_solicitud']
+
+class SolicitudBajaProvisoriaSerializer(serializers.ModelSerializer):
+    alumno = AlumnoSerializer()
+    compromiso = ParametrosCompromisoSerializer()
+
+    class Meta:
+        model = SolicitudBajaProvisoria
+        fields = ['id', 'alumno', 'compromiso', 'motivo', 'estado', 'fecha_solicitud', 'comentarios', 'fecha_evaluacion']
