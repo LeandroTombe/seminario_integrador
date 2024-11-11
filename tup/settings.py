@@ -24,10 +24,10 @@ env = environ.Env(
 )
 
 # Lee el archivo .env si existe
-if os.environ.get('DOCKER_ENV') == 'docker':
-    environ.Env.read_env(env_file='.env.dev')
-else:
-    environ.Env.read_env(env_file='.env')
+#if os.environ.get('DOCKER_ENV') == 'docker':
+#    environ.Env.read_env(env_file='.env.dev')
+#else:
+environ.Env.read_env(env_file='.env')
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -160,7 +160,7 @@ DATABASES = {
         'NAME':  env('DB_NAME'),
         'USER':  env('DB_USER'),
         'PASSWORD': env('DB_PASSWORD'),
-        'HOST':  env('DB_HOST', default='db'),
+        'HOST':  env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT', default='3306'),
     }
 }

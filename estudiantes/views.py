@@ -814,14 +814,51 @@ class PagoView(APIView):
         return Response({'status': 'Pago procesado y notificación enviada'})
     
     
-class MensajesView(APIView):
+class NotificacionesView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        # Obtener todos los mensajes o filtrar según el usuario autenticado
-        mensajes = Notificacion.objects.all()  # O usa un filtro por usuario
-        serializer = NotificacionSerializer(mensajes, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            alumno = Alumno.objects.get(user=request.user)
+            notificaciones = Notificacion.objects.filter(alumno=alumno).order_by('-fecha')
+            serializer = NotificacionSerializer(notificaciones, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Alumno.DoesNotExist:
+                # Si el alumno no existe, devolver un error personalizado
+                return Response(
+                    {"error": "Alumno no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
     
+class NotificacionLeidaView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        # Obtener la notificacion usando el ID (pk)
+        notificacion = get_object_or_404(Notificacion, pk=pk)
+
+        try:
+            alumno = Alumno.objects.get(user=request.user)
+            if notificacion.alumno != alumno:
+                return Response(
+                    {"error": "No tienes permiso para marcar esta notificación como leída"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            notificacion.visto = True
+            notificacion.save()
+
+            return Response({"success": "Notificación marcada como leída"}, status=status.HTTP_200_OK)
+
+        except Alumno.DoesNotExist:
+                # Si el alumno no existe, devolver un error personalizado
+                return Response(
+                    {"error": "Alumno no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
     
+
+
 #Filtrar alumno que no pagaron, eso te hace preguntando si la fecha de vencimiento es menor al dia 10 del mes siguiente
 
 class AlumnosNoPagaronView(APIView):
@@ -1081,7 +1118,7 @@ class ProrrogasPorAlumnoView(APIView):
                 {"error": "El alumno no existe."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
 class ProrrogasListView(generics.ListAPIView):
     serializer_class = SolicitudProrrogaSerializer
 
@@ -1117,6 +1154,20 @@ class ProrrogaUpdateView(APIView):
         # Actualizar el estado de la prórroga
         prorroga.estado = nuevo_estado
         prorroga.save()
+
+        # Crear una notificación personalizada basada en el nuevo estado
+        mensaje = (
+            f"Tu solicitud de prórroga de regularización para la materia {prorroga.materia.nombre} ha sido {'aprobada' if nuevo_estado == 'Aprobada' else 'rechazada'}."
+        )
+        if comentarios:
+            mensaje += f" Comentarios: {comentarios}"
+
+        # Crear la notificación asociada al alumno de la prórroga
+        Notificacion.objects.create(
+            alumno=prorroga.alumno,
+            tipo_evento="Evaluación de Prórroga de Regularización",
+            mensaje=mensaje
+        )
 
         # Serializar la prórroga actualizada para devolver en la respuesta
         serializer = SolicitudProrrogaSerializer(prorroga)
@@ -1239,6 +1290,20 @@ class BajaUpdateView(APIView):
         # Actualizar el estado de la baja
         baja.estado = nuevo_estado
         baja.save()
+
+        # Crear una notificación personalizada basada en el nuevo estado
+        mensaje = (
+            f"Tu solicitud de baja para el año {baja.compromiso.año} cuatrimestre {baja.compromiso.cuatrimestre} ha sido {'aprobada' if nuevo_estado == 'Aprobada' else 'rechazada'}."
+        )
+        if comentarios:
+            mensaje += f" Comentarios: {comentarios}"
+
+        # Crear la notificación asociada al alumno de la baja
+        Notificacion.objects.create(
+            alumno=baja.alumno,
+            tipo_evento="Evaluación de Baja Provisoria",
+            mensaje=mensaje
+        )
 
         if baja.estado == "Aprobada":
             cuotas = Cuota.objects.filter(alumno=baja.alumno, año=datetime.now().year, estado="Pendiente")

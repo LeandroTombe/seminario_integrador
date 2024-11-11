@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, MensajesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView
+from .views import AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, NotificacionesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView, NotificacionLeidaView
 
 
 urlpatterns = [
@@ -62,6 +62,7 @@ urlpatterns = [
     
     #notificaciones
     path('notificaciones/', PagoView.as_view(), name='pago'),
-    path('mensajes/', MensajesView.as_view(), name='mensajes-list'),
+    path('mensajes/', NotificacionesView.as_view(), name='mensajes-list'),
+    path('mensajes/<int:pk>/', NotificacionLeidaView.as_view(), name='notificacion-leida')
 
 ]
