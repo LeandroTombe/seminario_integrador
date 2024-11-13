@@ -27,7 +27,7 @@ from .models import Notificacion
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
+from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento, tratarFecha
 
 from datetime import datetime
 
@@ -661,12 +661,16 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
         total__gt=F('importePagado'), alumno_id=id_alumno  # total mayor que el importe pagado
     ).order_by('fechaPrimerVencimiento')
     monto_original=monto
+    cuotas_seleccionadas=[]
     tratamientoPago(id_alumno, monto_original, medio_pago,numeroRecibo)
     # Itera sobre las cuotas mientras haya monto por pagar
     while monto > 0 and cuotas_pendientes.exists():
         # Obtén la cuota más reciente
         cuota_mas_reciente = cuotas_pendientes.first()
-
+        
+        # Guardo el numero de la cuota que se paga
+        cuotas_seleccionadas.append(cuota_mas_reciente.nroCuota)
+        
         # Calcula el importe pendiente de la cuota
         importe_pendiente = cuota_mas_reciente.total - cuota_mas_reciente.importePagado
 
@@ -730,6 +734,24 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
             alumno = Alumno.objects.get(id=id_alumno)
             alumno.pago_al_dia = True
             alumno.save()
+    
+    # Tratamiento de notificacion
+    nombre_cuotas_pagadas = []
+        
+    for cuota in cuotas_seleccionadas:
+        nombre_cuotas_pagadas.append(tratarFecha(cuota))
+
+    # Crear una notificación personalizada basada en el nuevo estado
+    mensaje = (
+        f"Se ha registrado correctamente un pago de ${monto_original}. Puedes ver el pago reflejado en tu estado de cuenta."
+    )
+
+    # Crear la notificación asociada al alumno de la prórroga
+    Notificacion.objects.create(
+        alumno_id=id_alumno,
+        tipo_evento="Registro de pago exitoso",
+        mensaje=mensaje
+    )
   
     
                             
@@ -956,6 +978,13 @@ class InformarPagoCuotas(APIView):
             queryset = Cuota.objects.filter(alumno=alumno, año=datetime.now().year, nroCuota__in=cuotas_seleccionadas)
             
             monto_restante = Decimal(request.data.get("montoAPagar"))
+            
+            # Esto es para setear info para enviarlo en la notificacion
+            monto_mensaje = monto_restante
+            nombre_cuotas_informadas = []
+            for cuota in cuotas_seleccionadas:
+                nombre_cuotas_informadas.append(tratarFecha(cuota))
+
             for cuota in queryset:
                 # Calcular cuánto falta para pagar la cuota completamente
                 monto_a_pagar = cuota.total - cuota.importeInformado
@@ -977,6 +1006,22 @@ class InformarPagoCuotas(APIView):
                 # Restar el monto pagado de la cantidad restante
                 monto_restante -= monto_pagado
             
+            # Crear una notificación personalizada basada en el nuevo estado
+            mensaje = (
+                f"Tu pago de ${monto_mensaje} correspondiente a "
+                #f"{'las cuotas de ' if len(nombre_cuotas_informadas) > 1 else 'la cuota de '}"
+                f"{', '.join(nombre_cuotas_informadas)} "
+                f"ha sido correctamente informado. "
+                "Cuando se procese efectivamente podrás verlo reflejado en tu estado de cuenta."
+            )
+
+            # Crear la notificación asociada al alumno de la prórroga
+            Notificacion.objects.create(
+                alumno=alumno,
+                tipo_evento="Informe de pago",
+                mensaje=mensaje
+            )
+
             serializer = CuotaSerializer(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
