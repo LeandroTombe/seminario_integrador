@@ -1212,10 +1212,6 @@ class AlumnosPorMateria(APIView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import status
-
 class AlumnosPorMateriaYAnio(APIView):
     def get(self, request, *args, **kwargs):
         # Obtener el nombre de la materia desde los parámetros de consulta (opcional)
@@ -1238,20 +1234,23 @@ class AlumnosPorMateriaYAnio(APIView):
         # Obtener el parámetro 'anio' si está presente (opcional)
         anio_param = request.query_params.get('anio')
 
-        if anio_param and not anio_param.isdigit():
-            return Response(
-                {"error": "El parámetro 'anio' debe ser un número."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         if anio_param:
-            # Si se pasa el año, filtrar también por los compromisos de ese año
+            # Filtrar compromisos por año si se pasa el parámetro `anio_param`
             compromisos = FirmaCompromiso.objects.filter(
-                parametros_compromiso__año=anio_param
+                parametros_compromiso__año=datetime.now().year
             )
-            alumnos_query = alumnos_query.filter(
-                firmacompromiso__in=compromisos
-            ).distinct()
+            
+            # Si el parámetro `firmoCompromiso` es "Si" o "No"
+            if anio_param == "Si":
+                # Alumnos que tienen compromiso firmado
+                alumnos_query = alumnos_query.filter(
+                    firmacompromiso__in=compromisos
+                ).distinct()
+            elif anio_param == "No":
+                # Alumnos que no tienen compromiso firmado
+                alumnos_query = alumnos_query.exclude(
+                    firmacompromiso__in=compromisos
+                ).distinct()
 
         # Serializar los alumnos
         serializer = AlumnoSerializer(alumnos_query, many=True)
@@ -1475,3 +1474,40 @@ class BajaUpdateView(APIView):
         # Serializar la baja actualizada para devolver en la respuesta
         serializer = SolicitudBajaProvisoriaSerializer(baja)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class EnviarMensajeView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        # Extraemos los datos enviados en el payload
+        alumnos_ids = request.data.get('alumnos', [])
+        tipo_evento = request.data.get('titulo', '')
+        mensaje = request.data.get('contenido', '')
+
+        # Validamos que se envíen datos necesarios
+        if not alumnos_ids or not tipo_evento or not mensaje:
+            return Response(
+                {"error": "Faltan datos obligatorios (alumnos, titulo o contenido)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validamos la existencia de los alumnos
+        alumnos = Alumno.objects.filter(id__in=alumnos_ids)
+        if not alumnos.exists():
+            return Response(
+                {"error": "No se encontraron alumnos con los IDs proporcionados"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Creamos notificaciones para cada alumno
+        notificaciones_creadas = []
+        for alumno in alumnos:
+            notificacion = Notificacion.objects.create(
+                alumno=alumno,
+                tipo_evento=tipo_evento,
+                mensaje=mensaje
+            )
+            notificaciones_creadas.append(notificacion)
+
+        # Serializamos y devolvemos las notificaciones creadas
+        serializer = NotificacionSerializer(notificaciones_creadas, many=True)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnosPorMateriaYAnio,AlumnosPorMateria,AlumnosPorAnio,TodosLosAlumnos,AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, NotificacionesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView, NotificacionLeidaView
+from .views import AlumnosPorMateriaYAnio,AlumnosPorMateria,AlumnosPorAnio,TodosLosAlumnos,AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, NotificacionesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView, NotificacionLeidaView, EnviarMensajeView
 
 
 urlpatterns = [
@@ -67,6 +67,7 @@ urlpatterns = [
     
     #notificaciones
     path('notificaciones/', PagoView.as_view(), name='pago'),
+    path('coordinador/enviar-mensaje/', EnviarMensajeView.as_view(), name='enviar-mensaje'),
     path('mensajes/', NotificacionesView.as_view(), name='mensajes-list'),
     path('mensajes/<int:pk>/', NotificacionLeidaView.as_view(), name='notificacion-leida')
 

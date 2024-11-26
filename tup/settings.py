@@ -164,17 +164,17 @@ DATABASES = {
         'HOST':  env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT', default='3306'),
     },
-    'sqlserver': {  # Segunda base de datos (SQL Server)
-        'ENGINE': 'sql_server.pyodbc',
-        'NAME': env('SQLSERVER_DB_NAME'),
-        'USER': env('SQLSERVER_DB_USER'),
-        'PASSWORD': env('SQLSERVER_DB_PASSWORD'),
-        'HOST': env('SQLSERVER_DB_HOST', default='localhost'),
-        'PORT': env('SQLSERVER_DB_PORT', default='1433'),
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-        },
-    },
+    #'sqlserver': {  # Segunda base de datos (SQL Server)
+    #    'ENGINE': 'sql_server.pyodbc',
+    #    'NAME': env('SQLSERVER_DB_NAME'),
+    #    'USER': env('SQLSERVER_DB_USER'),
+    #    'PASSWORD': env('SQLSERVER_DB_PASSWORD'),
+    #    'HOST': env('SQLSERVER_DB_HOST', default='localhost'),
+    #    'PORT': env('SQLSERVER_DB_PORT', default='1433'),
+    #    'OPTIONS': {
+    #        'driver': 'ODBC Driver 17 for SQL Server',
+    #    },
+    #},
 }
 
 
