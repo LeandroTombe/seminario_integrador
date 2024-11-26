@@ -56,7 +56,7 @@ class MateriaCreateView(generics.CreateAPIView):
 class MateriaListView(generics.ListAPIView):
     queryset = Materia.objects.all().order_by('nombre')  # Ordena alfabéticamente por nombre
     serializer_class = MateriaSerializer
-    permission_classes = [IsAuthenticated, IsAlumno]
+    permission_classes = [IsAuthenticated]
 
 #actualizacion de materia
 class MateriaDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -927,6 +927,18 @@ class AlumnosCompromisoFirmadoView(APIView):
 
         return Response( total_alumnos, status=status.HTTP_200_OK)
     
+    
+#obtener todos los alumnos de este año
+
+class TodosLosAlumnos(APIView):
+    def get(self, request):
+        # Obtener todos los alumnos
+        todos_los_alumnos = Alumno.objects.all()
+        
+        # Serializar los datos
+        serializer = AlumnoSerializer(todos_los_alumnos, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class AlumnosNoPagaron2View(APIView):
     def get(self, request):
@@ -1081,6 +1093,32 @@ class AlumnosCuotasVencidas(APIView):
 
         # Devolver la lista de alumnos con cuotas vencidas
         return Response(alumnos_con_cuotas, status=status.HTTP_200_OK)
+    
+class AlumnosPorAnio(APIView):
+    def get(self, request, *args, **kwargs):
+        # Obtener el año desde los parámetros de consulta
+        anio = request.query_params.get('anio')
+        
+        if not anio or not anio.isdigit():
+            return Response(
+                {"error": "El parámetro 'anio' es obligatorio y debe ser un número."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Filtrar compromisos por el año proporcionado
+        compromisos = FirmaCompromiso.objects.filter(
+            parametros_compromiso__año=anio
+        )
+
+        # Obtener los alumnos únicos que firmaron en ese año
+        alumnos = Alumno.objects.filter(
+            firmacompromiso__in=compromisos
+        ).distinct()
+
+        # Serializar los alumnos
+        serializer = AlumnoSerializer(alumnos, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class SolicitarProrrogaView(APIView):
     permission_classes = [IsAuthenticated]  # Solo usuarios autenticados
@@ -1142,6 +1180,84 @@ class SolicitarProrrogaView(APIView):
                 {"error": "Error al procesar la solicitud."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+            
+class AlumnosPorMateria(APIView):
+    def get(self, request, *args, **kwargs):
+        # Obtener el nombre o código de la materia desde los parámetros de consulta
+        materia_param = request.query_params.get('materia')
+
+        if not materia_param:
+            return Response(
+                {"error": "El parámetro 'materia' es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Buscar la materia por nombre o código
+        try:
+            materia = Materia.objects.get(nombre=materia_param)
+        except Materia.DoesNotExist:
+            return Response(
+                {"error": f"No se encontró una materia con el nombre '{materia_param}'."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Obtener los alumnos cursando esa materia
+        alumnos = Alumno.objects.filter(
+            materias__nombre__icontains=materia_param
+        ).distinct()
+
+
+        # Serializar los alumnos
+        serializer = AlumnoSerializer(alumnos, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
+
+class AlumnosPorMateriaYAnio(APIView):
+    def get(self, request, *args, **kwargs):
+        # Obtener el nombre de la materia desde los parámetros de consulta (opcional)
+        materia_param = request.query_params.get('materia')
+
+        # Filtrar los alumnos que están cursando la materia, si se proporcionó la materia
+        if materia_param:
+            try:
+                materia = Materia.objects.get(nombre=materia_param)
+            except Materia.DoesNotExist:
+                return Response(
+                    {"error": f"No se encontró una materia con el nombre '{materia_param}'."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            alumnos_query = Alumno.objects.filter(materias__nombre__icontains=materia_param).distinct()
+        else:
+            # Si no se proporcionó materia, recuperar todos los alumnos
+            alumnos_query = Alumno.objects.all()
+
+        # Obtener el parámetro 'anio' si está presente (opcional)
+        anio_param = request.query_params.get('anio')
+
+        if anio_param and not anio_param.isdigit():
+            return Response(
+                {"error": "El parámetro 'anio' debe ser un número."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if anio_param:
+            # Si se pasa el año, filtrar también por los compromisos de ese año
+            compromisos = FirmaCompromiso.objects.filter(
+                parametros_compromiso__año=anio_param
+            )
+            alumnos_query = alumnos_query.filter(
+                firmacompromiso__in=compromisos
+            ).distinct()
+
+        # Serializar los alumnos
+        serializer = AlumnoSerializer(alumnos_query, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
         
 class ProrrogasPorAlumnoView(APIView):
     permission_classes = [IsAuthenticated]  # Solo usuarios autenticados

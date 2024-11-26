@@ -78,7 +78,8 @@ INSTALLED_APPS = [
     'estudiantes',
     'auditar',
     'mensajeria',
-    'channels'
+    'channels',
+    'sysacad'
 ]
 
 # Configuración de CORS
@@ -155,14 +156,25 @@ DEBUG = env('DEBUG')
 
 
 DATABASES = {
-     'default': {
+    'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME':  env('DB_NAME'),
         'USER':  env('DB_USER'),
         'PASSWORD': env('DB_PASSWORD'),
         'HOST':  env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT', default='3306'),
-    }
+    },
+    'sqlserver': {  # Segunda base de datos (SQL Server)
+        'ENGINE': 'sql_server.pyodbc',
+        'NAME': env('SQLSERVER_DB_NAME'),
+        'USER': env('SQLSERVER_DB_USER'),
+        'PASSWORD': env('SQLSERVER_DB_PASSWORD'),
+        'HOST': env('SQLSERVER_DB_HOST', default='localhost'),
+        'PORT': env('SQLSERVER_DB_PORT', default='1433'),
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+        },
+    },
 }
 
 

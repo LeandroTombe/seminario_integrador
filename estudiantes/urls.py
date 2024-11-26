@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, NotificacionesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView, NotificacionLeidaView
+from .views import AlumnosPorMateriaYAnio,AlumnosPorMateria,AlumnosPorAnio,TodosLosAlumnos,AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, NotificacionesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView, NotificacionLeidaView
 
 
 urlpatterns = [
@@ -43,11 +43,16 @@ urlpatterns = [
     #ALUMNOS
     #obtener un alumno por id
     path('alumno/perfil/', AlumnoDetailView.as_view(), name='alumno-detail'),
+    path('alumno/total-alumnos', TodosLosAlumnos.as_view(), name='total-alumnos'),
     path('alumno/habilitaciones',AlumnosNoPagaronView.as_view(), name='alumnos-no-pagaron'),
     path('alumno/<int:id>/cambiar-estado-pago/', CambiarEstadoPagoAPIView.as_view(), name='cambiar_estado_pago'),
     path('alumno/inhabilitados/', AlumnosCompromisoFirmadoView.as_view(), name='comprobar-firma'),
     path('alumno/ultimacuotapagada/', AlumnosNoPagaron2View.as_view(), name='comprobar-firma'),
     path('alumno/coutasvencidas/', AlumnosCuotasVencidas.as_view(), name='comprobar-firma'),
+    path('alumno/anual/', AlumnosPorAnio.as_view(), name='alumno-anual'),
+    path('alumno/materia/', AlumnosPorMateria.as_view(), name='alumno-materias'),
+    path('alumno/materia-anio/', AlumnosPorMateriaYAnio.as_view(), name='alumno-materias-anio'),
+    
 
     #Tramites
     path('alumno/tramites/prorroga/', SolicitarProrrogaView.as_view(), name='solicitar-prorroga'),

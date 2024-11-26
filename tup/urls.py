@@ -35,6 +35,9 @@ urlpatterns = [
     # endpoints de auditar
     path('api/v1/auditar/', include('auditar.urls')),
     
+    #endpoints de sqlserver
+    path('api/v1/sysacad/', include('sysacad.urls')),
+    
     #documentacion de la api
     
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
