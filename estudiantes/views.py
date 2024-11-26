@@ -27,7 +27,7 @@ from .models import Notificacion
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento
+from .utils import alta_cuotas, saldo_vencido, proximo_vencimiento, tratarFecha
 
 from datetime import datetime
 
@@ -661,12 +661,16 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
         total__gt=F('importePagado'), alumno_id=id_alumno  # total mayor que el importe pagado
     ).order_by('fechaPrimerVencimiento')
     monto_original=monto
+    cuotas_seleccionadas=[]
     tratamientoPago(id_alumno, monto_original, medio_pago,numeroRecibo)
     # Itera sobre las cuotas mientras haya monto por pagar
     while monto > 0 and cuotas_pendientes.exists():
         # Obtén la cuota más reciente
         cuota_mas_reciente = cuotas_pendientes.first()
-
+        
+        # Guardo el numero de la cuota que se paga
+        cuotas_seleccionadas.append(cuota_mas_reciente.nroCuota)
+        
         # Calcula el importe pendiente de la cuota
         importe_pendiente = cuota_mas_reciente.total - cuota_mas_reciente.importePagado
 
@@ -730,6 +734,24 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
             alumno = Alumno.objects.get(id=id_alumno)
             alumno.pago_al_dia = True
             alumno.save()
+    
+    # Tratamiento de notificacion
+    nombre_cuotas_pagadas = []
+        
+    for cuota in cuotas_seleccionadas:
+        nombre_cuotas_pagadas.append(tratarFecha(cuota))
+
+    # Crear una notificación personalizada basada en el nuevo estado
+    mensaje = (
+        f"Se ha registrado correctamente un pago de ${monto_original}. Puedes ver el pago reflejado en tu estado de cuenta."
+    )
+
+    # Crear la notificación asociada al alumno de la prórroga
+    Notificacion.objects.create(
+        alumno_id=id_alumno,
+        tipo_evento="Registro de pago exitoso",
+        mensaje=mensaje
+    )
   
     
                             
@@ -814,14 +836,51 @@ class PagoView(APIView):
         return Response({'status': 'Pago procesado y notificación enviada'})
     
     
-class MensajesView(APIView):
+class NotificacionesView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        # Obtener todos los mensajes o filtrar según el usuario autenticado
-        mensajes = Notificacion.objects.all()  # O usa un filtro por usuario
-        serializer = NotificacionSerializer(mensajes, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            alumno = Alumno.objects.get(user=request.user)
+            notificaciones = Notificacion.objects.filter(alumno=alumno).order_by('-fecha')
+            serializer = NotificacionSerializer(notificaciones, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Alumno.DoesNotExist:
+                # Si el alumno no existe, devolver un error personalizado
+                return Response(
+                    {"error": "Alumno no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
     
+class NotificacionLeidaView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        # Obtener la notificacion usando el ID (pk)
+        notificacion = get_object_or_404(Notificacion, pk=pk)
+
+        try:
+            alumno = Alumno.objects.get(user=request.user)
+            if notificacion.alumno != alumno:
+                return Response(
+                    {"error": "No tienes permiso para marcar esta notificación como leída"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            notificacion.visto = True
+            notificacion.save()
+
+            return Response({"success": "Notificación marcada como leída"}, status=status.HTTP_200_OK)
+
+        except Alumno.DoesNotExist:
+                # Si el alumno no existe, devolver un error personalizado
+                return Response(
+                    {"error": "Alumno no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
     
+
+
 #Filtrar alumno que no pagaron, eso te hace preguntando si la fecha de vencimiento es menor al dia 10 del mes siguiente
 
 class AlumnosNoPagaronView(APIView):
@@ -931,6 +990,13 @@ class InformarPagoCuotas(APIView):
             queryset = Cuota.objects.filter(alumno=alumno, año=datetime.now().year, nroCuota__in=cuotas_seleccionadas)
             
             monto_restante = Decimal(request.data.get("montoAPagar"))
+            
+            # Esto es para setear info para enviarlo en la notificacion
+            monto_mensaje = monto_restante
+            nombre_cuotas_informadas = []
+            for cuota in cuotas_seleccionadas:
+                nombre_cuotas_informadas.append(tratarFecha(cuota))
+
             for cuota in queryset:
                 # Calcular cuánto falta para pagar la cuota completamente
                 monto_a_pagar = cuota.total - cuota.importeInformado
@@ -952,6 +1018,22 @@ class InformarPagoCuotas(APIView):
                 # Restar el monto pagado de la cantidad restante
                 monto_restante -= monto_pagado
             
+            # Crear una notificación personalizada basada en el nuevo estado
+            mensaje = (
+                f"Tu pago de ${monto_mensaje} correspondiente a "
+                #f"{'las cuotas de ' if len(nombre_cuotas_informadas) > 1 else 'la cuota de '}"
+                f"{', '.join(nombre_cuotas_informadas)} "
+                f"ha sido correctamente informado. "
+                "Cuando se procese efectivamente podrás verlo reflejado en tu estado de cuenta."
+            )
+
+            # Crear la notificación asociada al alumno de la prórroga
+            Notificacion.objects.create(
+                alumno=alumno,
+                tipo_evento="Informe de pago",
+                mensaje=mensaje
+            )
+
             serializer = CuotaSerializer(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1197,7 +1279,7 @@ class ProrrogasPorAlumnoView(APIView):
                 {"error": "El alumno no existe."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
 class ProrrogasListView(generics.ListAPIView):
     serializer_class = SolicitudProrrogaSerializer
 
@@ -1233,6 +1315,20 @@ class ProrrogaUpdateView(APIView):
         # Actualizar el estado de la prórroga
         prorroga.estado = nuevo_estado
         prorroga.save()
+
+        # Crear una notificación personalizada basada en el nuevo estado
+        mensaje = (
+            f"Tu solicitud de prórroga de regularización para la materia {prorroga.materia.nombre} ha sido {'aprobada' if nuevo_estado == 'Aprobada' else 'rechazada'}."
+        )
+        if comentarios:
+            mensaje += f" Comentarios: {comentarios}"
+
+        # Crear la notificación asociada al alumno de la prórroga
+        Notificacion.objects.create(
+            alumno=prorroga.alumno,
+            tipo_evento="Evaluación de Prórroga de Regularización",
+            mensaje=mensaje
+        )
 
         # Serializar la prórroga actualizada para devolver en la respuesta
         serializer = SolicitudProrrogaSerializer(prorroga)
@@ -1355,6 +1451,20 @@ class BajaUpdateView(APIView):
         # Actualizar el estado de la baja
         baja.estado = nuevo_estado
         baja.save()
+
+        # Crear una notificación personalizada basada en el nuevo estado
+        mensaje = (
+            f"Tu solicitud de baja para el año {baja.compromiso.año} cuatrimestre {baja.compromiso.cuatrimestre} ha sido {'aprobada' if nuevo_estado == 'Aprobada' else 'rechazada'}."
+        )
+        if comentarios:
+            mensaje += f" Comentarios: {comentarios}"
+
+        # Crear la notificación asociada al alumno de la baja
+        Notificacion.objects.create(
+            alumno=baja.alumno,
+            tipo_evento="Evaluación de Baja Provisoria",
+            mensaje=mensaje
+        )
 
         if baja.estado == "Aprobada":
             cuotas = Cuota.objects.filter(alumno=baja.alumno, año=datetime.now().year, estado="Pendiente")

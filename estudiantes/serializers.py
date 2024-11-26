@@ -82,7 +82,7 @@ class MensajesSerializer(serializers.ModelSerializer):
 class NotificacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notificacion
-        fields = ['id', 'alumno', 'mensaje', 'fecha']
+        fields = ['id', 'alumno', 'tipo_evento', 'mensaje', 'fecha', 'visto']
         
 class Cuota2Serializer(serializers.ModelSerializer):
     class Meta:

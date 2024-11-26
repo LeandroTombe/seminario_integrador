@@ -69,7 +69,7 @@ class Cuota(models.Model):
                 self.moraPrimerVencimiento = compromiso.importe_pri_venc_red
                 self.moraSegundoVencimiento = compromiso.importe_seg_venc_red
 
-            if self.total <= (self.importe + self.moraPrimerVencimiento + self.moraSegundoVencimiento):
+            if self.total < (self.importe + self.moraPrimerVencimiento + self.moraSegundoVencimiento):
                 self.total += self.moraPrimerVencimiento + self.moraSegundoVencimiento
 
         elif hoy > self.fechaPrimerVencimiento:
@@ -187,13 +187,14 @@ class Mensajes(models.Model):
 
 
 class Notificacion(models.Model):
-   
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE, related_name='notificaciones')
+    tipo_evento = models.CharField(max_length=100)
     mensaje = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
+    visto = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.mensaje[:30]} - {self.alumno}"
+        return f"{self.alumno} - {self.tipo_evento}"
     
     
 class DetallePago(models.Model):

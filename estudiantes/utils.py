@@ -107,3 +107,21 @@ def proximo_vencimiento(alumno):
         return fecha_vencimiento_mas_proxima
     else:
         return None
+
+def tratarFecha(mes):
+    meses = {
+        0: "Matricula",
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre"
+    }
+    return meses.get(mes, "Desconocido")
