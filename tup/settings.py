@@ -156,7 +156,7 @@ DEBUG = env('DEBUG')
 
 
 DATABASES = {
-     'default': {
+    'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME':  env('DB_NAME'),
         'USER':  env('DB_USER'),
