@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from datetime import datetime
+from django.utils.translation import gettext_lazy as _
 
 class Materia(models.Model):
     codigo_materia = models.IntegerField(primary_key=True ,auto_created=True)
@@ -80,7 +81,7 @@ class Cuota(models.Model):
             else:
                 self.moraPrimerVencimiento = compromiso.importe_pri_venc_red
             
-            if self.total != (self.importe + self.moraPrimerVencimiento):
+            if self.total < (self.importe + self.moraPrimerVencimiento):
                 self.total += self.moraPrimerVencimiento
 
         # Guardar los cambios después de aplicar las moras
@@ -120,7 +121,6 @@ class ParametrosCompromiso(models.Model):
             models.UniqueConstraint(fields=['año', 'cuatrimestre'], name='unique_año_cuatrimestre')
         ]
     
-from django.db import models
 
 class FirmaCompromiso(models.Model):
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
@@ -175,15 +175,6 @@ class Coordinador(models.Model):
 
     def __str__(self):
         return f'{self.nombre} {self.apellido}'
-
-class Mensajes(models.Model):
-    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
-    periodo = models.CharField(max_length=255)
-    fechaFirma = models.DateField()
-
-    def __str__(self):
-        return f'{self.alumno} - {self.periodo}'
-    
 
 
 class Notificacion(models.Model):
@@ -253,3 +244,58 @@ class SolicitudBajaProvisoria(models.Model):
 
     def __str__(self):
         return f'Solicitud de {self.alumno} para {self.compromiso} - {self.estado}'
+
+class Mensaje(models.Model):
+    remitente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sent_messages",
+        verbose_name=_("Remitente")
+    )
+    destinatario = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="received_messages",
+        verbose_name=_("Destinatarios")
+    )
+    asunto = models.CharField(max_length=255, verbose_name=_("Asunto"))
+    contenido = models.TextField(verbose_name=_("Contenido"))
+    fecha_envio = models.DateTimeField(auto_now_add=True, verbose_name=_("Fecha de envío"))
+    mensaje_grupal = models.BooleanField(default=False, verbose_name=_("Mensaje grupal"))
+    leido_por = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="read_messages",
+        blank=True,
+        verbose_name=_("Leído por")
+    )
+
+    class Meta:
+        verbose_name = _("Mensaje")
+        verbose_name_plural = _("Mensajes")
+        ordering = ["-fecha_envio"]
+
+    def __str__(self):
+        return f"{self.asunto} - {self.remitente.apellido}"
+
+
+class RespuestaMensaje(models.Model):
+    mensaje_original = models.ForeignKey(
+        Mensaje,
+        on_delete=models.CASCADE,
+        related_name="replies",
+        verbose_name=_("Mensaje original")
+    )
+    remitente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name=_("Remitente")
+    )
+    contenido = models.TextField(verbose_name=_("Contenido"))
+    fecha_envio = models.DateTimeField(auto_now_add=True, verbose_name=_("Fecha de envío"))
+
+    class Meta:
+        verbose_name = _("Respuesta")
+        verbose_name_plural = _("Respuestas")
+        ordering = ["fecha_envio"]
+
+    def __str__(self):
+        return f"Respuesta de {self.remitente.apellido} a {self.mensaje_original.asunto}"

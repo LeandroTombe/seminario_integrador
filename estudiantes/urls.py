@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AlumnosPorMateriaYAnio,AlumnosPorMateria,AlumnosPorAnio,TodosLosAlumnos,AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, NotificacionesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView, NotificacionLeidaView, EnviarMensajeView
+from .views import AlumnosPorMateriaYAnio,AlumnosPorMateria,AlumnosPorAnio,TodosLosAlumnos,AlumnosCuotasVencidas,AlumnosNoPagaron2View,AlumnosCompromisoFirmadoView,CambiarEstadoPagoAPIView,AlumnosNoPagaronView,AlumnoDetailView,MateriasView,MateriaCreateView, MateriaListView, MateriaDetailView, NotificacionesView,PagoDeleteView,PagoListCreateView,PagoDetailView,AllPagoListView,PagoUpdateView, PagoView,ParametrosCompromisoSetValores,CompromisoActualView,AllCompromisoListView,ParametrosCompromisoEditar, FirmarCompromisoView, FirmaCompromisoActualListView, EstadoDeCuentaAlumnoView, ResumenAlumnoView,ExistenciaDeFirmaAlumnoCompromisoActualView,AllAlumnosInscriptosListView,ImportarCuotaPIView,ObtenerMateriasPorCodigoView, ObtenerPagoPorAlumnosView, InformarPagoCuotas, SolicitarProrrogaView, ProrrogasPorAlumnoView, ProrrogasListView, ProrrogaUpdateView, SolicitarBajaView, BajasListView, BajasPorAlumnoView,BajaUpdateView, NotificacionLeidaView, EnviarMensajeView, MensajesListView, MensajesEnviadosListView,MensajeLeidoView,MensajesNoLeidosView
 
 
 urlpatterns = [
@@ -66,9 +66,13 @@ urlpatterns = [
     path('baja/<int:pk>/', BajaUpdateView.as_view(), name='baja-update'),
     
     #notificaciones
-    path('notificaciones/', PagoView.as_view(), name='pago'),
+    #path('notificaciones/', PagoView.as_view(), name='pago'),
     path('coordinador/enviar-mensaje/', EnviarMensajeView.as_view(), name='enviar-mensaje'),
-    path('mensajes/', NotificacionesView.as_view(), name='mensajes-list'),
-    path('mensajes/<int:pk>/', NotificacionLeidaView.as_view(), name='notificacion-leida')
+    path('notificaciones/', NotificacionesView.as_view(), name='notificaciones-list'),
+    path('notificaciones/<int:pk>/', NotificacionLeidaView.as_view(), name='notificacion-leida'),
+    path('mensajes/', MensajesListView.as_view(), name='mensajes-list'),
+    path('mensajes/enviados', MensajesEnviadosListView.as_view(), name='mensajes-enviados-list'),
+    path('mensajes/<int:pk>/', MensajeLeidoView.as_view(), name='mensaje-leido'),
+    path('mensajes/no_leidos/', MensajesNoLeidosView.as_view(), name='mensajes-no-leidos'),
 
 ]

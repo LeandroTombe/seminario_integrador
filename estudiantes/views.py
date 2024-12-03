@@ -12,9 +12,10 @@ from rest_framework.decorators import api_view
 from unidecode import unidecode
 from cuentas.permissions import IsAlumno
 from rest_framework import status
+from rest_framework import viewsets, permissions
 
-from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, Mensajes, SolicitudProrroga,SolicitudBajaProvisoria
-from .serializers import AlumnosCoutasNoPagadas, MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer, SolicitudProrrogaSerializer, SolicitudBajaProvisoriaSerializer
+from .models import DetallePago, Materia, Cuota, Alumno, Cursado, ParametrosCompromiso, FirmaCompromiso, Pago, Inhabilitation, Coordinador, SolicitudProrroga,SolicitudBajaProvisoria, Mensaje, RespuestaMensaje
+from .serializers import AlumnosCoutasNoPagadas, MateriaSerializer, CuotaSerializer, AlumnoSerializer, CursadoSerializer, NotificacionSerializer, ParametrosCompromisoSerializer, FirmaCompromisoSerializer, PagoSerializer, InhabilitationSerializer, CoordinadorSerializer, MensajesSerializer, SolicitudProrrogaSerializer, SolicitudBajaProvisoriaSerializer, MensajeSerializer, RespuestaMensajeSerializer
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.utils.timezone import now
@@ -732,7 +733,7 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
         # y está dentro del margen de 10 días del mes actual
         if not cuota_mes_anterior and not cuota_mes_actual_vencida:
             alumno = Alumno.objects.get(id=id_alumno)
-            alumno.pago_al_dia = True
+            #alumno.pago_al_dia = True
             alumno.save()
     
     # Tratamiento de notificacion
@@ -1475,39 +1476,153 @@ class BajaUpdateView(APIView):
         serializer = SolicitudBajaProvisoriaSerializer(baja)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
 class EnviarMensajeView(APIView):
+    permission_classes = [IsAuthenticated]  # Solo usuarios autenticados
 
     def post(self, request, *args, **kwargs):
-        # Extraemos los datos enviados en el payload
-        alumnos_ids = request.data.get('alumnos', [])
-        tipo_evento = request.data.get('titulo', '')
-        mensaje = request.data.get('contenido', '')
+        
+        remitente = request.user
+        asunto = request.data.get('asunto', '')
+        contenido = request.data.get('contenido', '')
 
-        # Validamos que se envíen datos necesarios
-        if not alumnos_ids or not tipo_evento or not mensaje:
+        if remitente.group == 'alumno':
+            # Creamos el mensaje
+            mensaje = Mensaje.objects.create(
+                remitente=remitente,
+                asunto=asunto,
+                contenido=contenido,
+                mensaje_grupal= False
+            )
+            destinatario = User.objects.filter(group='coordinador')
+            mensaje.destinatario.set(destinatario)
+            mensaje.save()
+
+            # Serializamos y devolvemos el mensaje creado
+            serializer = MensajeSerializer(mensaje)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        # Extraemos los datos enviados en el payload
+        destinatarios_ids = request.data.get('destinatarios', [])
+
+        # Validamos que se envíen los datos necesarios
+        if not destinatarios_ids or not asunto or not contenido:
             return Response(
-                {"error": "Faltan datos obligatorios (alumnos, titulo o contenido)"},
+                {"error": "Faltan datos obligatorios (destinatarios, asunto o contenido)"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Validamos la existencia de los alumnos
-        alumnos = Alumno.objects.filter(id__in=alumnos_ids)
+        # Validamos la existencia de los alumnos con los IDs proporcionados
+        alumnos = Alumno.objects.filter(id__in=destinatarios_ids)
         if not alumnos.exists():
             return Response(
                 {"error": "No se encontraron alumnos con los IDs proporcionados"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Creamos notificaciones para cada alumno
-        notificaciones_creadas = []
-        for alumno in alumnos:
-            notificacion = Notificacion.objects.create(
-                alumno=alumno,
-                tipo_evento=tipo_evento,
-                mensaje=mensaje
-            )
-            notificaciones_creadas.append(notificacion)
+        # Extraemos los usuarios asociados a esos alumnos
+        destinatarios = [alumno.user for alumno in alumnos]
 
-        # Serializamos y devolvemos las notificaciones creadas
-        serializer = NotificacionSerializer(notificaciones_creadas, many=True)
+        # Creamos el mensaje
+        mensaje = Mensaje.objects.create(
+            remitente=remitente,
+            asunto=asunto,
+            contenido=contenido,
+            mensaje_grupal=len(destinatarios) > 1
+        )
+        mensaje.destinatario.set(destinatarios)
+        mensaje.save()
+
+        # Serializamos y devolvemos el mensaje creado
+        serializer = MensajeSerializer(mensaje)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class MensajesListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # Obtener el usuario logueado
+            usuario = request.user
+
+            # Filtrar los mensajes donde el usuario es uno de los destinatarios
+            mensajes = Mensaje.objects.filter(destinatario=usuario)
+
+            # Serializamos los mensajes
+            serializer = MensajeSerializer(mensajes, many=True)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Mensaje.DoesNotExist:
+            # Si no se encuentran mensajes, devolver un error personalizado
+            return Response(
+                {"error": "No se encontraron mensajes recibidos"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+class MensajesEnviadosListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            remitente = request.user
+            mensajes = Mensaje.objects.filter(remitente=remitente)
+            serializer = MensajeSerializer(mensajes, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Alumno.DoesNotExist:
+                # Si el remitente no existe, devolver un error personalizado
+                return Response(
+                    {"error": "Remitente no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+class MensajeLeidoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        # Obtener el mensaje usando el ID (pk)
+        mensaje = get_object_or_404(Mensaje, pk=pk)
+
+        try:
+            user = request.user  # Ya tenemos el usuario autenticado
+
+            if user not in mensaje.destinatario.all():  # Verifica si el usuario es destinatario del mensaje
+                return Response(
+                    {"error": "No tienes permiso para marcar este mensaje como leído"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            mensaje.leido_por.add(user)
+            mensaje.save()
+
+            return Response({"success": "Mensaje marcado como leído"}, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            # Si el usuario no existe, devolver un error personalizado
+            return Response(
+                {"error": "Usuario no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+class MensajesNoLeidosView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Obtener el usuario autenticado
+        user = request.user
+        
+        # Filtrar los mensajes donde el usuario es destinatario y aún no está en 'leido_por'
+        mensajes_no_leidos = Mensaje.objects.filter(
+            destinatario=user
+        ).exclude(leido_por=user)  # Excluir los mensajes que el usuario ya ha leído
+        
+        # Contar la cantidad de mensajes no leídos
+        cantidad_no_leidos = mensajes_no_leidos.count()
+
+        # Devolver la cantidad de mensajes no leídos
+        return Response(
+            {"cantidad_no_leidos": cantidad_no_leidos},
+            status=status.HTTP_200_OK
+        )

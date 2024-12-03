@@ -1,11 +1,16 @@
 from rest_framework import serializers
 from django.db.models import F
 from datetime import datetime
+from django.contrib.auth import get_user_model
 
 
+from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,DetallePago,SolicitudProrroga, SolicitudBajaProvisoria, Mensaje, RespuestaMensaje
+from cuentas.models import User
 
-from .models import Notificacion,Materia,Cuota,Alumno,Cursado,ParametrosCompromiso,FirmaCompromiso,Pago,Inhabilitation,Coordinador,Mensajes,DetallePago,SolicitudProrroga, SolicitudBajaProvisoria
-
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('nombre', 'apellido', 'group', 'documento', 'legajo')
 
 class MateriaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -76,7 +81,7 @@ class MensajesSerializer(serializers.ModelSerializer):
     alumno = AlumnoSerializer()
 
     class Meta:
-        model = Mensajes
+        model = Mensaje
         fields = ('alumno', 'periodo', 'fechaFirma')
         
 class NotificacionSerializer(serializers.ModelSerializer):
@@ -156,3 +161,60 @@ class SolicitudBajaProvisoriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = SolicitudBajaProvisoria
         fields = ['id', 'alumno', 'compromiso', 'motivo', 'estado', 'fecha_solicitud', 'comentarios', 'fecha_evaluacion']
+
+User = get_user_model()
+
+class MensajeSerializer(serializers.ModelSerializer):
+    remitente = UserSerializer()
+    destinatario = UserSerializer(
+        many=True
+    )
+    leido_por = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=True
+    )
+
+    class Meta:
+        model = Mensaje
+        fields = [
+            "id",
+            "remitente",
+            "destinatario",
+            "asunto",
+            "contenido",
+            "fecha_envio",
+            "mensaje_grupal",
+            "leido_por",
+        ]
+        read_only_fields = ["remitente", "fecha_envio"]
+
+    def validate(self, data):
+        request = self.context.get("request")
+        if request.user.group == "alumno":
+            # Verificar que los destinatarios sean solo coordinadores
+            for destinatario in data["destinatario"]:
+                if destinatario.group != "coordinador":
+                    raise serializers.ValidationError(
+                        "Los alumnos solo pueden enviar mensajes a coordinadores."
+                    )
+        return data
+
+class RespuestaMensajeSerializer(serializers.ModelSerializer):
+    remitente = serializers.StringRelatedField(read_only=True)
+    mensaje_original = serializers.PrimaryKeyRelatedField(
+        queryset=Mensaje.objects.all()
+    )
+
+    class Meta:
+        model = RespuestaMensaje
+        fields = ["id", "mensaje_original", "remitente", "contenido", "fecha_envio"]
+        read_only_fields = ["remitente", "fecha_envio"]
+
+    def validate(self, data):
+        request = self.context.get("request")
+        mensaje_original = data["mensaje_original"]
+        # Validar que el remitente sea parte de la conversación
+        if request.user != mensaje_original.remitente and request.user not in mensaje_original.destinatario.all():
+            raise serializers.ValidationError(
+                "No tienes permiso para responder este mensaje."
+            )
+        return data
