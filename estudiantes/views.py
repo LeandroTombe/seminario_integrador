@@ -77,7 +77,7 @@ class PagoDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PagoSerializer
     
 class AllPagoListView(generics.ListAPIView):
-    queryset = Pago.objects.all().order_by('-id')
+    queryset = Pago.objects.all().order_by('-fecha_pago_confirmado', '-id')
     serializer_class = PagoSerializer
     
 class PagoUpdateView(generics.RetrieveUpdateAPIView):
