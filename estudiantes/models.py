@@ -22,7 +22,8 @@ class Alumno(models.Model):
     email = models.EmailField(null=True, blank=True)
     pago_al_dia = models.BooleanField(default=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    materias = models.ManyToManyField(Materia, related_name='alumnos')
+    materias = models.ManyToManyField(Materia, related_name='alumnos', null=True, blank=True)
+    ingreso = models.IntegerField()
 
     def __str__(self):
         return f'{self.nombre} {self.apellido} {self.dni}'
@@ -112,6 +113,7 @@ class ParametrosCompromiso(models.Model):
     importe_pri_venc_red = models.DecimalField(max_digits=10, decimal_places=2)
     importe_seg_venc_comp = models.DecimalField(max_digits=10, decimal_places=2)
     importe_seg_venc_red = models.DecimalField(max_digits=10, decimal_places=2)
+    fecha_limite_baja = models.DateField()
 
     def __str__(self):
             return f'Año: {self.año} - Cuatrimestre: {self.cuatrimestre}'
