@@ -744,7 +744,7 @@ def tratamientoCoutaCero(id_alumno, monto, medio_pago,numeroRecibo):
 
     # Crear una notificación personalizada basada en el nuevo estado
     mensaje = (
-        f"Se ha registrado correctamente un pago de ${monto_original}. Puedes ver el pago reflejado en tu estado de cuenta."
+        f"Se ha registrado correctamente un pago de ${monto_original}. Puedes ver el pago reflejado en tu estado de cuenta. Número de recibo: {numeroRecibo}"
     )
 
     # Crear la notificación asociada al alumno de la prórroga

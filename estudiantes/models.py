@@ -23,7 +23,7 @@ class Alumno(models.Model):
     pago_al_dia = models.BooleanField(default=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     materias = models.ManyToManyField(Materia, related_name='alumnos', null=True, blank=True)
-    ingreso = models.IntegerField()
+    ingreso = models.IntegerField(default=2024)
 
     def __str__(self):
         return f'{self.nombre} {self.apellido} {self.dni}'

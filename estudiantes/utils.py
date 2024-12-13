@@ -22,7 +22,7 @@ def alta_cuotas(alumno, compromiso):
 
     # Dar de alta la matricula
     if not Cuota.objects.filter(alumno=alumno, año=compromiso.año, nroCuota=0).exists():
-        fecha_primer_vencimiento = datetime(compromiso.año, 8, 10)
+        fecha_primer_vencimiento = datetime(compromiso.año, 8, 15)
         fecha_segundo_vencimiento = datetime(compromiso.año, 8, 20)
 
         cuota = Cuota(
@@ -46,7 +46,7 @@ def alta_cuotas(alumno, compromiso):
         mes_vencimiento = nro_cuota
         año_vencimiento = compromiso.año
 
-        fecha_primer_vencimiento = datetime(año_vencimiento, mes_vencimiento, 10)
+        fecha_primer_vencimiento = datetime(año_vencimiento, mes_vencimiento, 15)
         fecha_segundo_vencimiento = datetime(año_vencimiento, mes_vencimiento, 20)
 
         cuota = Cuota(
